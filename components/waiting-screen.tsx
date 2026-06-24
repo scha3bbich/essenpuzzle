@@ -5,16 +5,18 @@ import { CAMP_START, formatDateDE } from '@/lib/days'
 
 interface WaitingScreenProps {
   isAfterCamp: boolean
+  campStart?: Date
 }
 
-export default function WaitingScreen({ isAfterCamp }: WaitingScreenProps) {
+export default function WaitingScreen({ isAfterCamp, campStart }: WaitingScreenProps) {
+  const start = campStart ?? CAMP_START
   const [countdown, setCountdown] = useState('')
 
   useEffect(() => {
     if (isAfterCamp) return
     const tick = () => {
       const now = new Date()
-      const diff = CAMP_START.getTime() - now.getTime()
+      const diff = start.getTime() - now.getTime()
       if (diff <= 0) {
         setCountdown('Gleich geht es los!')
         return
@@ -26,9 +28,9 @@ export default function WaitingScreen({ isAfterCamp }: WaitingScreenProps) {
       setCountdown(`${days}T ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
     }
     tick()
-    const id = setInterval(tick, 1000)
+      const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [isAfterCamp])
+  }, [isAfterCamp, start])
 
   if (isAfterCamp) {
     return (
@@ -55,7 +57,7 @@ export default function WaitingScreen({ isAfterCamp }: WaitingScreenProps) {
       </h1>
       <p className="text-muted-foreground text-lg mb-8 max-w-sm text-pretty">
         Das erste Rätsel erscheint am{' '}
-        <span className="font-bold text-foreground">{formatDateDE(CAMP_START)}</span>{' '}
+        <span className="font-bold text-foreground">{formatDateDE(start)}</span>{' '}
         um 13:30 Uhr MEZ.
       </p>
 
