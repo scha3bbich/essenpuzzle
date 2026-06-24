@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-const WORDS_POOL = [
+import type { HangmanWord } from '@/lib/config'
+
+const DEFAULT_WORDS_POOL: HangmanWord[] = [
   { word: 'MITTAGESSEN', hint: 'Was man mittags zu sich nimmt' },
   { word: 'LAGERFEUER', hint: 'Wärmt und erhellt das Zeltlager' },
   { word: 'KOCHLOEFFEL', hint: 'Wichtiges Küchenwerkzeug' },
@@ -12,9 +14,10 @@ const WORDS_POOL = [
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 const MAX_WRONG = 6
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { words?: HangmanWord[] } }
 
-export default function Day7({ onSolved }: Props) {
+export default function Day7({ onSolved, content }: Props) {
+  const WORDS_POOL = content?.words?.length ? content.words : DEFAULT_WORDS_POOL
   const [wordIdx, setWordIdx] = useState(0)
   const [guessed, setGuessed] = useState<string[]>([])
   const [solved, setSolved] = useState(false)

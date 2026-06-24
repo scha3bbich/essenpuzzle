@@ -1,6 +1,7 @@
 'use client'
 
 import { markDaySolved } from '@/lib/days'
+import type { AdminConfig } from '@/lib/config'
 import Day1 from './puzzles/day1'
 import Day2 from './puzzles/day2'
 import Day3 from './puzzles/day3'
@@ -17,29 +18,31 @@ import Day12 from './puzzles/day12'
 interface Props {
   day: number
   onSolved: () => void
+  config?: AdminConfig
 }
 
-export default function DayPuzzle({ day, onSolved }: Props) {
+export default function DayPuzzle({ day, onSolved, config }: Props) {
   const handleSolved = () => {
     markDaySolved(day)
     onSolved()
   }
 
   const props = { onSolved: handleSolved }
+  const pc = config?.days[day - 1]?.puzzleContent
 
   switch (day) {
-    case 1:  return <Day1  {...props} />
-    case 2:  return <Day2  {...props} />
-    case 3:  return <Day3  {...props} />
-    case 4:  return <Day4  {...props} />
-    case 5:  return <Day5  {...props} />
-    case 6:  return <Day6  {...props} />
-    case 7:  return <Day7  {...props} />
-    case 8:  return <Day8  {...props} />
-    case 9:  return <Day9  {...props} />
-    case 10: return <Day10 {...props} />
-    case 11: return <Day11 {...props} />
-    case 12: return <Day12 {...props} />
+    case 1:  return <Day1  {...props} content={{ questions: pc?.quizQuestions }} />
+    case 2:  return <Day2  {...props} content={{ pairs: pc?.memoryPairs }} />
+    case 3:  return <Day3  {...props} content={{ words: pc?.scrambleWords }} />
+    case 4:  return <Day4  {...props} content={{ wordSearchWords: pc?.wordSearchWords }} />
+    case 5:  return <Day5  {...props} content={{ riddles: pc?.mathRiddles }} />
+    case 6:  return <Day6  {...props} content={{ statements: pc?.trueFalseStatements }} />
+    case 7:  return <Day7  {...props} content={{ words: pc?.hangmanWords }} />
+    case 8:  return <Day8  {...props} content={{ steps: pc?.sortingSteps }} />
+    case 9:  return <Day9  {...props} content={{ riddles: pc?.textRiddles }} />
+    case 10: return <Day10 {...props} content={{ pairs: pc?.matchingPairs }} />
+    case 11: return <Day11 {...props} content={{ encoded: pc?.codeEncoded, answer: pc?.codeAnswer, clues: pc?.codeClues }} />
+    case 12: return <Day12 {...props} content={{ stages: pc?.finalStages }} />
     default:
       return (
         <main className="min-h-screen flex items-center justify-center text-muted-foreground">

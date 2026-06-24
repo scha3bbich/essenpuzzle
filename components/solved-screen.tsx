@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { getNextDayUnlockTime, TOTAL_DAYS } from '@/lib/days'
+import { TOTAL_DAYS } from '@/lib/days'
 
 interface SolvedScreenProps {
   day: number
   onDayChange: () => void
+  imageUrl?: string
+  nextUnlockTime?: Date | null
 }
 
-export default function SolvedScreen({ day, onDayChange }: SolvedScreenProps) {
-  const nextUnlock = getNextDayUnlockTime(day)
+export default function SolvedScreen({ day, onDayChange, imageUrl, nextUnlockTime }: SolvedScreenProps) {
+  const nextUnlock = nextUnlockTime ?? null
+  const displayImage = imageUrl || '/camp-success.png'
   const [countdown, setCountdown] = useState('')
   const isLastDay = day >= TOTAL_DAYS
 
@@ -50,11 +53,12 @@ export default function SolvedScreen({ day, onDayChange }: SolvedScreenProps) {
 
         <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-lg border-4 border-primary/20">
           <Image
-            src="/camp-success.png"
-            alt="Zeltlager Mittagessen Szene"
+            src={displayImage}
+            alt={`Erfolgsbild Tag ${day}`}
             fill
             className="object-cover"
             priority
+            unoptimized
           />
         </div>
 

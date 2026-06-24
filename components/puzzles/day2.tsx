@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-const PAIRS = ['🍲', '🥗', '🥕', '🧅', '🍞', '🧀', '🥚', '🌽']
+const DEFAULT_PAIRS = ['🍲', '🥗', '🥕', '🧅', '🍞', '🧀', '🥚', '🌽']
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr, ...arr]
@@ -12,9 +12,10 @@ function shuffle<T>(arr: T[]): T[] {
     .map(x => x.v)
 }
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { pairs?: string[] } }
 
-export default function Day2({ onSolved }: Props) {
+export default function Day2({ onSolved, content }: Props) {
+  const PAIRS = content?.pairs?.length ? content.pairs : DEFAULT_PAIRS
   const [cards, setCards] = useState<string[]>([])
   const [flipped, setFlipped] = useState<number[]>([])
   const [matched, setMatched] = useState<number[]>([])
@@ -24,7 +25,7 @@ export default function Day2({ onSolved }: Props) {
 
   useEffect(() => {
     setCards(shuffle(PAIRS))
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFlip = useCallback((idx: number) => {
     if (lock || flipped.includes(idx) || matched.includes(idx)) return

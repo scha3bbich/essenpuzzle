@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-const STATEMENTS = [
+import type { TrueFalseStatement } from '@/lib/config'
+
+const DEFAULT_STATEMENTS: TrueFalseStatement[] = [
   { text: 'Rohes Fleisch sollte niemals bei Zimmertemperatur gelagert werden.', answer: true },
   { text: 'Man kann Nudeln auch in kaltem Wasser kochen — das spart Zeit.', answer: false },
   { text: 'Salz erhöht den Siedepunkt des Wassers leicht.', answer: true },
@@ -11,9 +13,10 @@ const STATEMENTS = [
   { text: 'Frisches Wasser ist die wichtigste Zutat beim Kochen draußen.', answer: true },
 ]
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { statements?: TrueFalseStatement[] } }
 
-export default function Day6({ onSolved }: Props) {
+export default function Day6({ onSolved, content }: Props) {
+  const STATEMENTS = content?.statements?.length ? content.statements : DEFAULT_STATEMENTS
   const [answers, setAnswers] = useState<(boolean | null)[]>(Array(STATEMENTS.length).fill(null))
   const [checked, setChecked] = useState(false)
   const [submitted, setSubmitted] = useState(false)

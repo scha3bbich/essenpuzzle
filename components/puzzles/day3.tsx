@@ -3,16 +3,19 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-const WORDS = [
+import type { ScrambleWord } from '@/lib/config'
+
+const DEFAULT_WORDS: ScrambleWord[] = [
   { scrambled: 'PTEOP', answer: 'TOPFE', hint: 'Damit kocht man Suppe' },
   { scrambled: 'SAESL', answer: 'SALSE', hint: 'Damit würzt man alles' },
   { scrambled: 'EFRREU', answer: 'FEURER', hint: 'Darauf wird gekocht' },
   { scrambled: 'EGMEUS', answer: 'GEMUESE', hint: 'Gesundes Mittagessen' },
 ]
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { words?: ScrambleWord[] } }
 
-export default function Day3({ onSolved }: Props) {
+export default function Day3({ onSolved, content }: Props) {
+  const WORDS = content?.words?.length ? content.words : DEFAULT_WORDS
   const [current, setCurrent] = useState(0)
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle')

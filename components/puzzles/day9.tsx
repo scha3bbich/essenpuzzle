@@ -3,27 +3,16 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-const RIDDLES = [
-  {
-    riddle: 'Ich habe Zähne, aber kein Maul. Ich helfe beim Kochen, aber esse nichts selbst. Was bin ich?',
-    answer: 'GABEL',
-    hint: 'Man braucht mich zum Essen',
-  },
-  {
-    riddle: 'Ich bin rund, ich bin hohl. Ich fasse viel Wasser und stehe auf dem Feuer. Was bin ich?',
-    answer: 'TOPF',
-    hint: 'Ein Kochgefäß',
-  },
-  {
-    riddle: 'Ich weiß, aber ich bin kein Schnee. Ich würze die Suppe, aber ich bin kein Gewürz aus der Pflanzenwelt. Was bin ich?',
-    answer: 'SALZ',
-    hint: 'Kommt aus dem Meer oder aus der Erde',
-  },
+const DEFAULT_RIDDLES = [
+  { riddle: 'Ich habe Zähne, aber kein Maul. Ich helfe beim Kochen, aber esse nichts selbst. Was bin ich?', answer: 'GABEL', hint: 'Man braucht mich zum Essen' },
+  { riddle: 'Ich bin rund, ich bin hohl. Ich fasse viel Wasser und stehe auf dem Feuer. Was bin ich?', answer: 'TOPF', hint: 'Ein Kochgefäß' },
+  { riddle: 'Ich weiß, aber ich bin kein Schnee. Ich würze die Suppe, aber ich bin kein Gewürz aus der Pflanzenwelt. Was bin ich?', answer: 'SALZ', hint: 'Kommt aus dem Meer oder aus der Erde' },
 ]
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { riddles?: typeof DEFAULT_RIDDLES } }
 
-export default function Day9({ onSolved }: Props) {
+export default function Day9({ onSolved, content }: Props) {
+  const RIDDLES = content?.riddles?.length ? content.riddles : DEFAULT_RIDDLES
   const [current, setCurrent] = useState(0)
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle')

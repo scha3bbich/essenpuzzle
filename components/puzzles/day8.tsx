@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-// Sort steps of cooking spaghetti in the right order
-const STEPS_CORRECT = [
+const DEFAULT_STEPS: string[] = [
   'Wasser in den Topf füllen',
   'Wasser zum Kochen bringen',
   'Salz ins Wasser geben',
@@ -17,9 +16,10 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5)
 }
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { steps?: string[] } }
 
-export default function Day8({ onSolved }: Props) {
+export default function Day8({ onSolved, content }: Props) {
+  const STEPS_CORRECT = content?.steps?.length ? content.steps : DEFAULT_STEPS
   const [items, setItems] = useState<string[]>(() => shuffle(STEPS_CORRECT))
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [checked, setChecked] = useState(false)

@@ -3,37 +3,19 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-// Final mega-quiz: best of all puzzle types combined
-const STAGES = [
-  {
-    type: 'quiz',
-    question: 'Was ist das Lieblingsessen vieler Zeltlager-Kinder?',
-    options: ['Rotkohl', 'Nudeln mit Tomatensauce', 'Fischsuppe', 'Blattsalat'],
-    answer: 1,
-  },
-  {
-    type: 'input',
-    question: 'Wie viele Tage hat dieses Zeltlager-Abenteuer gedauert?',
-    answer: '12',
-    hint: 'So viele Rätsel gab es',
-  },
-  {
-    type: 'quiz',
-    question: 'Was ist das Wichtigste beim Kochen im Freien?',
-    options: ['Scharfe Messer', 'Feuer und sicherer Umgang damit', 'Schnelle Zubereitung', 'Teure Zutaten'],
-    answer: 1,
-  },
-  {
-    type: 'input',
-    question: 'Was serviert man traditionell am Ende eines Zeltlager-Mittagessens zum Nachtisch?',
-    answer: 'OBST',
-    hint: 'Wächst auf Bäumen oder Sträuchern — z.B. Apfel oder Banane',
-  },
+import type { FinalStage } from '@/lib/config'
+
+const DEFAULT_STAGES: FinalStage[] = [
+  { type: 'quiz', question: 'Was ist das Lieblingsessen vieler Zeltlager-Kinder?', options: ['Rotkohl', 'Nudeln mit Tomatensauce', 'Fischsuppe', 'Blattsalat'], answer: '1' },
+  { type: 'input', question: 'Wie viele Tage hat dieses Zeltlager-Abenteuer gedauert?', answer: '12', hint: 'So viele Rätsel gab es' },
+  { type: 'quiz', question: 'Was ist das Wichtigste beim Kochen im Freien?', options: ['Scharfe Messer', 'Feuer und sicherer Umgang damit', 'Schnelle Zubereitung', 'Teure Zutaten'], answer: '1' },
+  { type: 'input', question: 'Was serviert man traditionell am Ende eines Zeltlager-Mittagessens zum Nachtisch?', answer: 'OBST', hint: 'Wächst auf Bäumen oder Sträuchern — z.B. Apfel oder Banane' },
 ]
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { stages?: FinalStage[] } }
 
-export default function Day12({ onSolved }: Props) {
+export default function Day12({ onSolved, content }: Props) {
+  const STAGES = content?.stages?.length ? content.stages : DEFAULT_STAGES
   const [stage, setStage] = useState(0)
   const [input, setInput] = useState('')
   const [selected, setSelected] = useState<number | null>(null)
@@ -41,6 +23,7 @@ export default function Day12({ onSolved }: Props) {
   const [done, setDone] = useState(false)
 
   const current = STAGES[stage]
+  const correctIdx = current.type === 'quiz' ? parseInt(current.answer, 10) : -1
 
   const advance = () => {
     if (stage + 1 >= STAGES.length) {
@@ -55,7 +38,7 @@ export default function Day12({ onSolved }: Props) {
 
   const checkInput = () => {
     if (current.type !== 'input') return
-    if (input.trim().toUpperCase() === (current as { answer: string }).answer) {
+    if (input.trim().toUpperCase() === current.answer.toUpperCase()) {
       setStatus('correct')
       setTimeout(advance, 800)
     } else {
@@ -67,8 +50,7 @@ export default function Day12({ onSolved }: Props) {
   const handleOption = (idx: number) => {
     if (selected !== null) return
     setSelected(idx)
-    const q = current as { answer: number }
-    if (idx === q.answer) {
+    if (idx === correctIdx) {
       setStatus('correct')
       setTimeout(advance, 900)
     } else {
@@ -121,11 +103,10 @@ export default function Day12({ onSolved }: Props) {
 
           {current.type === 'quiz' ? (
             <div className="flex flex-col gap-2">
-              {(current as { options: string[]; answer: number }).options.map((opt, idx) => {
-                const q = current as { answer: number }
+              {(current.options ?? []).map((opt, idx) => {
                 let cls = 'border-border bg-background text-foreground hover:bg-muted'
                 if (selected !== null) {
-                  if (idx === q.answer) cls = 'border-primary bg-primary/10 text-primary'
+                  if (idx === correctIdx) cls = 'border-primary bg-primary/10 text-primary'
                   else if (idx === selected) cls = 'border-destructive bg-destructive/10 text-destructive'
                   else cls = 'border-border bg-background text-muted-foreground opacity-50'
                 }
@@ -143,8 +124,8 @@ export default function Day12({ onSolved }: Props) {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {'hint' in current && (
-                <p className="text-sm text-muted-foreground">Hinweis: <span className="font-semibold text-foreground">{(current as { hint: string }).hint}</span></p>
+              {current.hint && (
+                <p className="text-sm text-muted-foreground">Hinweis: <span className="font-semibold text-foreground">{current.hint}</span></p>
               )}
               <div className="flex gap-2">
                 <input

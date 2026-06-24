@@ -35,9 +35,11 @@ const WORDS_TO_FIND = ['SUPPE', 'TOPF', 'SALZ', 'BROT']
 
 function cellKey(r: number, c: number) { return `${r}-${c}` }
 
-interface Props { onSolved: () => void }
+// Note: the grid and SOLUTION_MAP are hardcoded. wordSearchWords in content is
+// informational only and not used by the game logic.
+interface Props { onSolved: () => void; content?: { wordSearchWords?: string[] } }
 
-export default function Day4({ onSolved }: Props) {
+export default function Day4({ onSolved, content: _content }: Props) {
   const [found, setFound] = useState<string[]>([])
   const [selecting, setSelecting] = useState<[number, number][]>([])
   const [wrong, setWrong] = useState(false)

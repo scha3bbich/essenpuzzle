@@ -3,25 +3,27 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-// Match food to its category
-const PAIRS: [string, string][] = [
-  ['Karotte', 'Gemüse'],
-  ['Apfel', 'Obst'],
-  ['Salz', 'Gewürz'],
-  ['Brot', 'Getreide'],
-  ['Milch', 'Milchprodukt'],
-  ['Rindfleisch', 'Fleisch'],
+import type { MatchingPair } from '@/lib/config'
+
+const DEFAULT_PAIRS: MatchingPair[] = [
+  { left: 'Karotte', right: 'Gemüse' },
+  { left: 'Apfel', right: 'Obst' },
+  { left: 'Salz', right: 'Gewürz' },
+  { left: 'Brot', right: 'Getreide' },
+  { left: 'Milch', right: 'Milchprodukt' },
+  { left: 'Rindfleisch', right: 'Fleisch' },
 ]
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5)
 }
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { pairs?: MatchingPair[] } }
 
-export default function Day10({ onSolved }: Props) {
-  const [lefts] = useState(() => shuffle(PAIRS.map(p => p[0])))
-  const [rights] = useState(() => shuffle(PAIRS.map(p => p[1])))
+export default function Day10({ onSolved, content }: Props) {
+  const PAIRS = content?.pairs?.length ? content.pairs : DEFAULT_PAIRS
+  const [lefts] = useState(() => shuffle(PAIRS.map(p => p.left)))
+  const [rights] = useState(() => shuffle(PAIRS.map(p => p.right)))
   const [selLeft, setSelLeft] = useState<string | null>(null)
   const [selRight, setSelRight] = useState<string | null>(null)
   const [matched, setMatched] = useState<string[]>([]) // matched left items
@@ -36,7 +38,7 @@ export default function Day10({ onSolved }: Props) {
 
   const handleRight = (item: string) => {
     if (!selLeft) return
-    const matchedRight = PAIRS.find(([l]) => l === selLeft)?.[1]
+    const matchedRight = PAIRS.find(p => p.left === selLeft)?.right
     if (matchedRight === item) {
       const newMatched = [...matched, selLeft]
       setMatched(newMatched)
@@ -50,7 +52,7 @@ export default function Day10({ onSolved }: Props) {
     }
   }
 
-  const matchedRights = matched.map(l => PAIRS.find(([pl]) => pl === l)?.[1] ?? '')
+  const matchedRights = matched.map(l => PAIRS.find(p => p.left === l)?.right ?? '')
 
   return (
     <PuzzleShell

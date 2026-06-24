@@ -27,6 +27,49 @@ export function getNextDayUnlockTime(currentDay: number): Date | null {
   return getDayUnlockTime(currentDay + 1)
 }
 
+// ─── Config-aware variants ─────────────────────────────────────────────────
+
+/**
+ * Returns the unlock Date for a given day, using the MEZ time from config
+ * if provided, or the default 13:30 MEZ otherwise.
+ */
+export function getDayUnlockTimeWithConfig(day: number, timeMEZ?: string | null): Date {
+  if (!timeMEZ) return getDayUnlockTime(day)
+  const [h, m] = timeMEZ.split(':').map(Number)
+  const utcH = (h - 2 + 24) % 24
+  // Base = midnight UTC on the correct calendar date
+  const msPerDay = 24 * 60 * 60 * 1000
+  const dayDate = new Date(CAMP_START)
+  dayDate.setUTCHours(0, 0, 0, 0)
+  const base = new Date(dayDate.getTime() + (day - 1) * msPerDay)
+  base.setUTCHours(utcH, m, 0, 0)
+  return base
+}
+
+/**
+ * Like getCurrentDay() but respects per-day unlock times from admin config.
+ * unlockTimes: array of 12 "HH:MM" MEZ strings (or null = use default).
+ */
+export function getCurrentDayWithConfig(unlockTimes: (string | null)[]): number | null {
+  const now = new Date()
+  for (let d = TOTAL_DAYS; d >= 1; d--) {
+    const unlock = getDayUnlockTimeWithConfig(d, unlockTimes[d - 1])
+    if (now >= unlock) return d
+  }
+  return null
+}
+
+/**
+ * Like getNextDayUnlockTime() but uses config times.
+ */
+export function getNextDayUnlockTimeWithConfig(
+  currentDay: number,
+  unlockTimes: (string | null)[]
+): Date | null {
+  if (currentDay >= TOTAL_DAYS) return null
+  return getDayUnlockTimeWithConfig(currentDay + 1, unlockTimes[currentDay])
+}
+
 /** LocalStorage key for solved days */
 export const SOLVED_KEY = 'zeltlager_solved_days'
 

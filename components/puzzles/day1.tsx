@@ -2,33 +2,19 @@
 
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
+import type { QuizQuestion } from '@/lib/config'
 
-const QUESTIONS = [
-  {
-    q: 'Was ist ein typisches Zeltlager-Gericht, das in einem großen Topf über dem Feuer gekocht wird?',
-    options: ['Sushi', 'Gulasch', 'Pizza', 'Fondue'],
-    answer: 1,
-  },
-  {
-    q: 'Welches Werkzeug benutzt man zum Essen beim Zeltlager?',
-    options: ['Löffel, Gabel & Messer', 'Stäbchen', 'Hände allein', 'Pinzette'],
-    answer: 0,
-  },
-  {
-    q: 'Was macht man mit Lebensmitteln im Zeltlager, damit sie frisch bleiben?',
-    options: ['In die Sonne legen', 'Im Schatten & in Kühlboxen lagern', 'Vergraben', 'An Bäume hängen'],
-    answer: 1,
-  },
-  {
-    q: 'Was trinkt man beim Zeltlager am meisten?',
-    options: ['Kaffee', 'Energydrinks', 'Wasser', 'Milch pur'],
-    answer: 2,
-  },
+const DEFAULT_QUESTIONS: QuizQuestion[] = [
+  { q: 'Was ist ein typisches Zeltlager-Gericht, das in einem großen Topf über dem Feuer gekocht wird?', options: ['Sushi', 'Gulasch', 'Pizza', 'Fondue'], answer: 1 },
+  { q: 'Welches Werkzeug benutzt man zum Essen beim Zeltlager?', options: ['Löffel, Gabel & Messer', 'Stäbchen', 'Hände allein', 'Pinzette'], answer: 0 },
+  { q: 'Was macht man mit Lebensmitteln im Zeltlager, damit sie frisch bleiben?', options: ['In die Sonne legen', 'Im Schatten & in Kühlboxen lagern', 'Vergraben', 'An Bäume hängen'], answer: 1 },
+  { q: 'Was trinkt man beim Zeltlager am meisten?', options: ['Kaffee', 'Energydrinks', 'Wasser', 'Milch pur'], answer: 2 },
 ]
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { questions?: QuizQuestion[] } }
 
-export default function Day1({ onSolved }: Props) {
+export default function Day1({ onSolved, content }: Props) {
+  const QUESTIONS = content?.questions?.length ? content.questions : DEFAULT_QUESTIONS
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [wrong, setWrong] = useState(false)

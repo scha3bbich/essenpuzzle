@@ -3,20 +3,27 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-// Secret code puzzle: each letter has a number (A=1, B=2...)
-// Decode the word "SUPPE" -> 19-21-16-16-5
-const ENCODED = [19, 21, 16, 16, 5]
-const ANSWER = 'SUPPE'
-
-const CLUES = [
-  { clue: 'Erstes Buchstabe: Im Alphabet der 19. Buchstabe', value: 'S' },
-  { clue: '4. Buchstabe: Genauso wie der 3. Buchstabe', value: 'P' },
-  { clue: 'Letzter Buchstabe: Der 5. Buchstabe im Alphabet', value: 'E' },
+const DEFAULT_ENCODED = [19, 21, 16, 16, 5]
+const DEFAULT_ANSWER = 'SUPPE'
+const DEFAULT_CLUES = [
+  { clue: 'Erstes Buchstabe: Im Alphabet der 19. Buchstabe' },
+  { clue: '4. Buchstabe: Genauso wie der 3. Buchstabe' },
+  { clue: 'Letzter Buchstabe: Der 5. Buchstabe im Alphabet' },
 ]
 
-interface Props { onSolved: () => void }
+interface Props {
+  onSolved: () => void
+  content?: {
+    encoded?: number[]
+    answer?: string
+    clues?: Array<{ clue: string }>
+  }
+}
 
-export default function Day11({ onSolved }: Props) {
+export default function Day11({ onSolved, content }: Props) {
+  const ENCODED = content?.encoded?.length ? content.encoded : DEFAULT_ENCODED
+  const ANSWER = content?.answer?.trim().toUpperCase() || DEFAULT_ANSWER
+  const CLUES = content?.clues?.length ? content.clues : DEFAULT_CLUES
   const [inputs, setInputs] = useState<string[]>(Array(ENCODED.length).fill(''))
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle')
 

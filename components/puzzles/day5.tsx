@@ -3,27 +3,18 @@
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
 
-const RIDDLES = [
-  {
-    text: 'Im Zeltlager kochen 3 Köche. Jeder schält 8 Kartoffeln. Wie viele Kartoffeln wurden insgesamt geschält?',
-    answer: 24,
-    unit: 'Kartoffeln',
-  },
-  {
-    text: 'Es gibt 5 Tische. An jedem Tisch sitzen 6 Kinder. Wie viele Kinder essen zusammen zu Mittag?',
-    answer: 30,
-    unit: 'Kinder',
-  },
-  {
-    text: 'Für die Suppe braucht man 4 Liter Wasser pro Topf. Es werden 3 Töpfe gekocht. Wie viele Liter Wasser werden insgesamt benötigt?',
-    answer: 12,
-    unit: 'Liter',
-  },
+import type { MathRiddle } from '@/lib/config'
+
+const DEFAULT_RIDDLES: MathRiddle[] = [
+  { text: 'Im Zeltlager kochen 3 Köche. Jeder schält 8 Kartoffeln. Wie viele Kartoffeln wurden insgesamt geschält?', answer: 24, unit: 'Kartoffeln' },
+  { text: 'Es gibt 5 Tische. An jedem Tisch sitzen 6 Kinder. Wie viele Kinder essen zusammen zu Mittag?', answer: 30, unit: 'Kinder' },
+  { text: 'Für die Suppe braucht man 4 Liter Wasser pro Topf. Es werden 3 Töpfe gekocht. Wie viele Liter Wasser werden insgesamt benötigt?', answer: 12, unit: 'Liter' },
 ]
 
-interface Props { onSolved: () => void }
+interface Props { onSolved: () => void; content?: { riddles?: MathRiddle[] } }
 
-export default function Day5({ onSolved }: Props) {
+export default function Day5({ onSolved, content }: Props) {
+  const RIDDLES = content?.riddles?.length ? content.riddles : DEFAULT_RIDDLES
   const [current, setCurrent] = useState(0)
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle')
