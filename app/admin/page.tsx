@@ -41,17 +41,14 @@ export default function AdminPage() {
     setSaveStatus('idle')
     setSaveError('')
     try {
-      const bodyStr = JSON.stringify(cfg)
-      console.log('[v0] admin: saving config, body size =', bodyStr.length, 'bytes')
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: bodyStr,
+        body: JSON.stringify(cfg),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: string; detail?: string }
         const msg = data.detail ?? data.error ?? `HTTP ${res.status}`
-        console.error('[v0] admin: save failed:', msg)
         setSaveError(msg)
         setSaveStatus('error')
         return
@@ -59,7 +56,6 @@ export default function AdminPage() {
       setSaveStatus('saved')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error('[v0] admin: save exception:', msg)
       setSaveError(msg)
       setSaveStatus('error')
     } finally {
