@@ -15,7 +15,7 @@ const DAY_LABELS = [
   'Tag 7 – Galgenmann',
   'Tag 8 – Sortieren',
   'Tag 9 – Ratsel',
-  'Tag 10 – Zuordnung',
+  'Tag 10 – Hitster',
   'Tag 11 – Code',
   'Tag 12 – Finale',
 ]

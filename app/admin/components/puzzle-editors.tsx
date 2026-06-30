@@ -7,7 +7,7 @@ import type {
   MathRiddle,
   TrueFalseStatement,
   HangmanWord,
-  MatchingPair,
+  HitsterPair,
   FinalStage,
 } from '@/lib/config'
 
@@ -383,26 +383,123 @@ function TextRiddleEditor({
   )
 }
 
-// ─── Day 10: Matching ─────────────────────────────────────────────────────────
+// ─── Day 10: Hitster ─────────────────────────────────────────────────────────
 
-function MatchingEditor({ pairs, onChange }: { pairs: MatchingPair[]; onChange: (p: MatchingPair[]) => void }) {
-  const update = (i: number, patch: Partial<MatchingPair>) =>
+function HitsterEditor({
+  pairs,
+  onChange,
+}: {
+  pairs: HitsterPair[]
+  onChange: (p: HitsterPair[]) => void
+}) {
+  const update = (i: number, patch: Partial<HitsterPair>) =>
     onChange(pairs.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
 
+  const uploadFile = async (
+    i: number,
+    file: File,
+    type: 'audio' | 'image'
+  ) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('day', '10')
+    try {
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
+      const data = await res.json() as { url?: string }
+      if (data.url) {
+        update(i, type === 'audio' ? { audioUrl: data.url } : { imageUrl: data.url })
+      }
+    } catch {
+      alert('Upload fehlgeschlagen.')
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Zuordnungspaare (Links → Rechts)</SectionLabel>
+    <div className="flex flex-col gap-4">
+      <SectionLabel>Audio-Bild-Paare (je ein Clip + ein Foto)</SectionLabel>
       {pairs.map((p, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <TextInput value={p.left} onChange={v => update(i, { left: v })} placeholder="Links" />
-          <span className="text-muted-foreground shrink-0">→</span>
-          <TextInput value={p.right} onChange={v => update(i, { right: v })} placeholder="Rechts" />
-          {pairs.length > 2 && (
+        <ItemCard key={i}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-bold">Paar {i + 1}</span>
             <RemoveButton onClick={() => onChange(pairs.filter((_, idx) => idx !== i))} />
-          )}
-        </div>
+          </div>
+
+          {/* Label */}
+          <TextInput
+            value={p.label}
+            onChange={v => update(i, { label: v })}
+            placeholder="Bezeichnung (z.B. Name des Gruppenleiters)"
+          />
+
+          {/* Audio */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs text-muted-foreground font-semibold">Audio-Datei</p>
+            <div className="flex gap-2 items-center">
+              <TextInput
+                value={p.audioUrl}
+                onChange={v => update(i, { audioUrl: v })}
+                placeholder="URL (https://...) oder nach Upload automatisch"
+                className="flex-1"
+              />
+              <label className="shrink-0 text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors whitespace-nowrap">
+                Hochladen
+                <input
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadFile(i, file, 'audio')
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
+            {p.audioUrl && (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <audio controls src={p.audioUrl} className="w-full h-9 mt-1 rounded-lg" />
+            )}
+          </div>
+
+          {/* Image */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs text-muted-foreground font-semibold">Bild</p>
+            <div className="flex gap-2 items-center">
+              <TextInput
+                value={p.imageUrl}
+                onChange={v => update(i, { imageUrl: v })}
+                placeholder="URL (https://...) oder nach Upload automatisch"
+                className="flex-1"
+              />
+              <label className="shrink-0 text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors whitespace-nowrap">
+                Hochladen
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadFile(i, file, 'image')
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
+            {p.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.imageUrl}
+                alt={`Vorschau ${i + 1}`}
+                className="w-24 h-24 object-cover rounded-xl border border-border mt-1"
+              />
+            )}
+          </div>
+        </ItemCard>
       ))}
-      <AddButton onClick={() => onChange([...pairs, { left: '', right: '' }])} label="Paar hinzufugen" />
+      <AddButton
+        onClick={() => onChange([...pairs, { audioUrl: '', imageUrl: '', label: '' }])}
+        label="Paar hinzufugen"
+      />
     </div>
   )
 }
@@ -527,7 +624,7 @@ export default function PuzzleContentEditor({ day, content, onChange }: PuzzleEd
   const PUZZLE_NAMES: Record<number, string> = {
     1: 'Quiz', 2: 'Memory', 3: 'Anagramm', 4: 'Wortsuche (Gitter fix)',
     5: 'Rechenaufgaben', 6: 'Wahr / Falsch', 7: 'Galgenmanning',
-    8: 'Reihenfolge sortieren', 9: 'Ratsel', 10: 'Zuordnung',
+    8: 'Reihenfolge sortieren', 9: 'Ratsel', 10: 'Gruppenleiter Hitster',
     11: 'Geheimcode', 12: 'Grosses Finale',
   }
 
@@ -603,9 +700,9 @@ export default function PuzzleContentEditor({ day, content, onChange }: PuzzleEd
         />
       )}
       {day === 10 && (
-        <MatchingEditor
-          pairs={content.matchingPairs ?? []}
-          onChange={p => onChange({ ...content, matchingPairs: p })}
+        <HitsterEditor
+          pairs={content.hitsterPairs ?? []}
+          onChange={p => onChange({ ...content, hitsterPairs: p })}
         />
       )}
       {day === 11 && (
