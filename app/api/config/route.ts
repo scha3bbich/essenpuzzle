@@ -23,15 +23,31 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as AdminConfig
-    await put(BLOB_PATH, JSON.stringify(body, null, 2), {
+    console.log('[v0] config POST: parsing request body...')
+    let body: AdminConfig
+    try {
+      body = await request.json() as AdminConfig
+    } catch (parseErr) {
+      console.error('[v0] config POST: failed to parse JSON body:', parseErr)
+      return NextResponse.json({ error: 'Ungültiger JSON-Body', detail: String(parseErr) }, { status: 400 })
+    }
+
+    const jsonStr = JSON.stringify(body, null, 2)
+    console.log(`[v0] config POST: body size = ${jsonStr.length} bytes, putting to blob...`)
+
+    await put(BLOB_PATH, jsonStr, {
       access: 'public',
       addRandomSuffix: false,
       contentType: 'application/json',
     })
+
+    console.log('[v0] config POST: saved successfully')
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[config API] save error:', err)
-    return NextResponse.json({ error: 'Speichern fehlgeschlagen' }, { status: 500 })
+    console.error('[v0] config POST: unexpected error:', err)
+    return NextResponse.json(
+      { error: 'Speichern fehlgeschlagen', detail: String(err) },
+      { status: 500 }
+    )
   }
 }
