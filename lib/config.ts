@@ -33,6 +33,16 @@ export interface MatchingPair {
   right: string
 }
 
+/** Day 10 – Hitster: match an audio clip to an image */
+export interface HitsterPair {
+  /** Public URL of the audio file (MP3/OGG etc.) */
+  audioUrl: string
+  /** Public URL of the image to match to */
+  imageUrl: string
+  /** Display label shown after solving (e.g. name of the person) */
+  label: string
+}
+
 export interface FinalStage {
   type: 'quiz' | 'input'
   question: string
@@ -60,8 +70,9 @@ export interface DayPuzzleContent {
   sortingSteps?: string[]
   // Day 9 – Text Riddles
   textRiddles?: Array<{ riddle: string; answer: string; hint: string }>
-  // Day 10 – Matching
-  matchingPairs?: MatchingPair[]
+  // Day 10 – Hitster (audio-to-image matching)
+  matchingPairs?: MatchingPair[] // legacy, kept for backwards compat
+  hitsterPairs?: HitsterPair[]
   // Day 11 – Code
   codeEncoded?: number[]
   codeAnswer?: string
@@ -210,19 +221,12 @@ export const DEFAULT_CONFIG: AdminConfig = {
         ],
       },
     },
-    // Day 10 – Matching
+    // Day 10 – Hitster
     {
       unlockTimeMEZ: '13:30',
       successImageUrl: '/camp-success.png',
       puzzleContent: {
-        matchingPairs: [
-          { left: 'Karotte', right: 'Gemüse' },
-          { left: 'Apfel', right: 'Obst' },
-          { left: 'Salz', right: 'Gewürz' },
-          { left: 'Brot', right: 'Getreide' },
-          { left: 'Milch', right: 'Milchprodukt' },
-          { left: 'Rindfleisch', right: 'Fleisch' },
-        ],
+        hitsterPairs: [],
       },
     },
     // Day 11 – Code
