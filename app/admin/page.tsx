@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [activeDay, setActiveDay] = useState(0) // 0-based index
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -38,19 +39,28 @@ export default function AdminPage() {
   const save = useCallback(async (cfg: AdminConfig) => {
     setSaving(true)
     setSaveStatus('idle')
+    setSaveError('')
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cfg),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string; detail?: string }
+        const msg = data.detail ?? data.error ?? `HTTP ${res.status}`
+        setSaveError(msg)
+        setSaveStatus('error')
+        return
+      }
       setSaveStatus('saved')
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setSaveError(msg)
       setSaveStatus('error')
     } finally {
       setSaving(false)
-      setTimeout(() => setSaveStatus('idle'), 3000)
+      setTimeout(() => setSaveStatus('idle'), 6000)
     }
   }, [])
 
@@ -89,7 +99,9 @@ export default function AdminPage() {
             <span className="text-xs text-primary font-semibold animate-fade-in">Gespeichert</span>
           )}
           {saveStatus === 'error' && (
-            <span className="text-xs text-destructive font-semibold">Fehler beim Speichern</span>
+            <span className="text-xs text-destructive font-semibold max-w-xs truncate" title={saveError}>
+              Fehler: {saveError || 'Unbekannter Fehler'}
+            </span>
           )}
           <button
             onClick={() => save(config)}

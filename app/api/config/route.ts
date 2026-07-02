@@ -23,15 +23,28 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as AdminConfig
-    await put(BLOB_PATH, JSON.stringify(body, null, 2), {
+    let body: AdminConfig
+    try {
+      body = await request.json() as AdminConfig
+    } catch (parseErr) {
+      return NextResponse.json({ error: 'Ungültiger JSON-Body', detail: String(parseErr) }, { status: 400 })
+    }
+
+    const jsonStr = JSON.stringify(body, null, 2)
+
+    await put(BLOB_PATH, jsonStr, {
       access: 'public',
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: 'application/json',
     })
+
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[config API] save error:', err)
-    return NextResponse.json({ error: 'Speichern fehlgeschlagen' }, { status: 500 })
+    console.error('[config] save error:', err)
+    return NextResponse.json(
+      { error: 'Speichern fehlgeschlagen', detail: String(err) },
+      { status: 500 }
+    )
   }
 }
