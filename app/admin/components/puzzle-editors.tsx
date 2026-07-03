@@ -8,6 +8,7 @@ import type {
   TrueFalseStatement,
   HangmanWord,
   HitsterPair,
+  MemoryPair,
   FinalStage,
 } from '@/lib/config'
 
@@ -187,21 +188,91 @@ function QuizEditor({
 
 // ─── Day 2: Memory ────────────────────────────────────────────────────────────
 
-function MemoryEditor({ pairs, onChange }: { pairs: string[]; onChange: (p: string[]) => void }) {
+function MemoryEditor({
+  pairs,
+  onChange,
+}: {
+  pairs: MemoryPair[]
+  onChange: (p: MemoryPair[]) => void
+}) {
+  const update = (i: number, patch: Partial<MemoryPair>) =>
+    onChange(pairs.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
+
+  const uploadImage = async (i: number, file: File, slot: 'A' | 'B') => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('day', '2')
+    try {
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
+      const data = await res.json() as { url?: string }
+      if (data.url) update(i, slot === 'A' ? { imageA: data.url } : { imageB: data.url })
+    } catch {
+      alert('Upload fehlgeschlagen.')
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Karten-Paare (Emoji oder Text)</SectionLabel>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {pairs.map((p, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <TextInput value={p} onChange={v => onChange(pairs.map((x, idx) => (idx === i ? v : x)))} placeholder="Symbol" />
-            {pairs.length > 2 && (
-              <button onClick={() => onChange(pairs.filter((_, idx) => idx !== i))} className="text-xs text-destructive shrink-0">x</button>
-            )}
+    <div className="flex flex-col gap-4">
+      <SectionLabel>
+        Bildpaare — je zwei verschiedene Bilder die zusammen gehoren ({pairs.length} Paare = {pairs.length * 2} Karten)
+      </SectionLabel>
+      {pairs.map((p, i) => (
+        <ItemCard key={i}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-bold">Paar {i + 1}</span>
+            <RemoveButton onClick={() => onChange(pairs.filter((_, idx) => idx !== i))} />
           </div>
-        ))}
-      </div>
-      <AddButton onClick={() => onChange([...pairs, ''])} label="Karte hinzufugen" />
+
+          {/* Optional label */}
+          <TextInput
+            value={p.label ?? ''}
+            onChange={v => update(i, { label: v })}
+            placeholder="Bezeichnung (optional, wird nach dem Fund angezeigt)"
+          />
+
+          {/* Two image upload slots side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            {(['A', 'B'] as const).map(slot => {
+              const url = slot === 'A' ? p.imageA : p.imageB
+              return (
+                <div key={slot} className="flex flex-col gap-1.5">
+                  <p className="text-xs text-muted-foreground font-semibold">Bild {slot}</p>
+                  <TextInput
+                    value={url}
+                    onChange={v => update(i, slot === 'A' ? { imageA: v } : { imageB: v })}
+                    placeholder="URL oder nach Upload automatisch"
+                  />
+                  <label className="text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors text-center">
+                    Bild hochladen
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) uploadImage(i, file, slot)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  {url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={url}
+                      alt={`Bild ${slot} von Paar ${i + 1}`}
+                      className="w-full aspect-square object-cover rounded-xl border border-border"
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </ItemCard>
+      ))}
+      <AddButton
+        onClick={() => onChange([...pairs, { imageA: '', imageB: '', label: '' }])}
+        label="Paar hinzufugen"
+      />
     </div>
   )
 }
