@@ -24,9 +24,7 @@ function AudioButton({ url }: { url: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [playing, setPlaying] = useState(false)
 
-  useEffect(() => {
-    return () => { audioRef.current?.pause() }
-  }, [])
+  useEffect(() => { return () => { audioRef.current?.pause() } }, [])
 
   const toggle = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
@@ -71,7 +69,6 @@ function AudioButton({ url }: { url: string }) {
   )
 }
 
-// ── Ghost element that follows the pointer while dragging ─────────────────────
 interface GhostState {
   imageIndex: number
   pair: HitsterPair
@@ -79,6 +76,8 @@ interface GhostState {
   y: number
   width: number
   height: number
+  offsetX: number
+  offsetY: number
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -91,101 +90,120 @@ export default function Day10({ onSolved, content }: Props) {
     shuffle(rawPairs.map((pair, originalIndex) => ({ pair, originalIndex })))
   )
 
-  // clipIndex -> imageArrayIndex
   const [assignments, setAssignments] = useState<Record<number, number>>({})
   const assignedImageIndices = new Set(Object.values(assignments))
   const unassignedImages = images.filter((_, idx) => !assignedImageIndices.has(idx))
-  const allAssigned = unassignedImages.length === 0 && Object.keys(assignments).length === clips.length
+  const allAssigned =
+    unassignedImages.length === 0 && Object.keys(assignments).length === clips.length
 
   const [wrongCount, setWrongCount] = useState(0)
   const [showError, setShowError] = useState(false)
   const [done, setDone] = useState(false)
 
-  // ── Pointer-based drag state ───────────────────────────────────────────────
   const [ghost, setGhost] = useState<GhostState | null>(null)
   const [activeDropClip, setActiveDropClip] = useState<number | null>(null)
   const [activeDropPool, setActiveDropPool] = useState(false)
   const ghostRef = useRef<GhostState | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Keep ref in sync so pointermove handler (captured once) always has latest
+  // Keep ref in sync
   useEffect(() => { ghostRef.current = ghost }, [ghost])
 
-  // ── Start drag from an image card ─────────────────────────────────────────
+  // ── Global pointer move / up on window so dragging anywhere works ──────────
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const g = ghostRef.current
+      if (!g) return
+      // Prevent scroll on touch
+      e.preventDefault()
+
+      setGhost(prev =>
+        prev ? { ...prev, x: e.clientX - prev.offsetX, y: e.clientY - prev.offsetY } : null
+      )
+
+      // Temporarily hide ghost so elementFromPoint can see what's beneath
+      const ghostEl = document.getElementById('hitster-ghost')
+      if (ghostEl) ghostEl.style.display = 'none'
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      if (ghostEl) ghostEl.style.display = ''
+
+      const clipEl = el?.closest('[data-clip-index]')
+      const poolEl = el?.closest('[data-pool]')
+      setActiveDropClip(clipEl ? Number(clipEl.getAttribute('data-clip-index')) : null)
+      setActiveDropPool(!!poolEl && !clipEl)
+    }
+
+    const onUp = (e: PointerEvent) => {
+      const g = ghostRef.current
+      if (!g) return
+
+      const ghostEl = document.getElementById('hitster-ghost')
+      if (ghostEl) ghostEl.style.display = 'none'
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      if (ghostEl) ghostEl.style.display = ''
+
+      const clipEl = el?.closest('[data-clip-index]')
+      const poolEl = el?.closest('[data-pool]')
+
+      if (clipEl) {
+        const clipIdx = Number(clipEl.getAttribute('data-clip-index'))
+        setAssignments(prev => {
+          const next = { ...prev }
+          for (const [k, v] of Object.entries(next)) {
+            if (v === g.imageIndex) delete next[Number(k)]
+          }
+          next[clipIdx] = g.imageIndex
+          return next
+        })
+      } else if (poolEl) {
+        setAssignments(prev => {
+          const next = { ...prev }
+          for (const [k, v] of Object.entries(next)) {
+            if (v === g.imageIndex) delete next[Number(k)]
+          }
+          return next
+        })
+      }
+
+      setGhost(null)
+      ghostRef.current = null
+      setActiveDropClip(null)
+      setActiveDropPool(false)
+    }
+
+    window.addEventListener('pointermove', onMove, { passive: false })
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [])
+
+  // ── Start drag ─────────────────────────────────────────────────────────────
   const startDrag = useCallback((
     e: React.PointerEvent<HTMLDivElement>,
     imageIndex: number,
     pair: HitsterPair,
   ) => {
-    // Don't start drag from audio button
     if ((e.target as HTMLElement).closest('button')) return
-    e.currentTarget.setPointerCapture(e.pointerId)
     e.preventDefault()
 
     const rect = e.currentTarget.getBoundingClientRect()
+    const offsetX = e.clientX - rect.left
+    const offsetY = e.clientY - rect.top
+
     const state: GhostState = {
       imageIndex,
       pair,
-      x: e.clientX - rect.width / 2,
-      y: e.clientY - rect.height / 2,
+      x: e.clientX - offsetX,
+      y: e.clientY - offsetY,
       width: rect.width,
       height: rect.height,
+      offsetX,
+      offsetY,
     }
     setGhost(state)
     ghostRef.current = state
     setShowError(false)
-  }, [])
-
-  // ── Move ghost ─────────────────────────────────────────────────────────────
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!ghostRef.current) return
-    e.preventDefault()
-    setGhost(prev => prev ? { ...prev, x: e.clientX - prev.width / 2, y: e.clientY - prev.height / 2 } : null)
-
-    // Hit test: which clip row or pool is under the pointer?
-    const el = document.elementFromPoint(e.clientX, e.clientY)
-    const clipEl = el?.closest('[data-clip-index]')
-    const poolEl = el?.closest('[data-pool]')
-    setActiveDropClip(clipEl ? Number(clipEl.getAttribute('data-clip-index')) : null)
-    setActiveDropPool(!!poolEl && !clipEl)
-  }, [])
-
-  // ── Release ────────────────────────────────────────────────────────────────
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    const g = ghostRef.current
-    if (!g) return
-
-    const el = document.elementFromPoint(e.clientX, e.clientY)
-    const clipEl = el?.closest('[data-clip-index]')
-    const poolEl = el?.closest('[data-pool]')
-
-    if (clipEl) {
-      const clipIdx = Number(clipEl.getAttribute('data-clip-index'))
-      setAssignments(prev => {
-        const next = { ...prev }
-        // Remove this image from any existing clip assignment
-        for (const [k, v] of Object.entries(next)) {
-          if (v === g.imageIndex) delete next[Number(k)]
-        }
-        // If clip already had an image, swap it back to pool (just remove it)
-        next[clipIdx] = g.imageIndex
-        return next
-      })
-    } else if (poolEl) {
-      // Return to pool
-      setAssignments(prev => {
-        const next = { ...prev }
-        for (const [k, v] of Object.entries(next)) {
-          if (v === g.imageIndex) delete next[Number(k)]
-        }
-        return next
-      })
-    }
-
-    setGhost(null)
-    ghostRef.current = null
-    setActiveDropClip(null)
-    setActiveDropPool(false)
   }, [])
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -207,7 +225,7 @@ export default function Day10({ onSolved, content }: Props) {
     }
   }
 
-  // ── Image card (used in both pool and clip rows) ──────────────────────────
+  // ── Small image card ───────────────────────────────────────────────────────
   const ImageCard = ({
     pair,
     imageIndex,
@@ -219,8 +237,7 @@ export default function Day10({ onSolved, content }: Props) {
   }) => (
     <div
       onPointerDown={!isGhost ? (e) => startDrag(e, imageIndex, pair) : undefined}
-      onPointerMove={!isGhost ? onPointerMove : undefined}
-      onPointerUp={!isGhost ? onPointerUp : undefined}
+      style={isGhost ? { width: ghost?.width, height: ghost?.height } : undefined}
       className={`relative rounded-xl border-2 overflow-hidden select-none touch-none ${
         isGhost
           ? 'opacity-80 shadow-2xl border-accent scale-105 cursor-grabbing pointer-events-none'
@@ -228,17 +245,11 @@ export default function Day10({ onSolved, content }: Props) {
           ? 'border-border opacity-30 cursor-grabbing'
           : 'border-border hover:border-primary/60 cursor-grab active:cursor-grabbing'
       }`}
-      style={isGhost ? { width: ghost?.width, height: ghost?.height } : undefined}
     >
       <div className="aspect-square w-full bg-muted">
         {pair.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={pair.imageUrl}
-            alt=""
-            className="w-full h-full object-cover"
-            draggable={false}
-          />
+          <img src={pair.imageUrl} alt="" className="w-full h-full object-cover" draggable={false} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-bold">
             Bild {imageIndex + 1}
@@ -272,9 +283,8 @@ export default function Day10({ onSolved, content }: Props) {
           Noch keine Paare konfiguriert. Bitte im Admin-Panel Audio- und Bilddateien hinzufugen.
         </div>
       ) : (
-        <div ref={containerRef} className="flex flex-col gap-4 relative">
+        <div className="flex flex-col gap-4 relative">
 
-          {/* Error banner */}
           {showError && (
             <div className="rounded-2xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm font-semibold text-destructive text-center">
               Leider falsch! Alle Bilder wurden zuruckgesetzt — versuch es nochmal.
@@ -284,7 +294,6 @@ export default function Day10({ onSolved, content }: Props) {
             </div>
           )}
 
-          {/* Two-column landscape layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
 
             {/* Left: clip rows */}
@@ -309,7 +318,6 @@ export default function Day10({ onSolved, content }: Props) {
                         : 'border-dashed border-border bg-muted/20'
                     }`}
                   >
-                    {/* Audio + label */}
                     <div className="flex items-center gap-2 shrink-0 w-24 sm:w-28">
                       <AudioButton url={clip.audioUrl} />
                       <span className="text-xs font-bold text-foreground leading-tight">
@@ -317,18 +325,13 @@ export default function Day10({ onSolved, content }: Props) {
                       </span>
                     </div>
 
-                    {/* Arrow */}
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
                       <path d="M3 8h10M9 4l4 4-4 4" />
                     </svg>
 
-                    {/* Assigned image or drop hint */}
                     <div className="flex-1 min-w-0">
                       {assignedEntry ? (
-                        <ImageCard
-                          pair={assignedEntry.pair}
-                          imageIndex={assignedIdx!}
-                        />
+                        <ImageCard pair={assignedEntry.pair} imageIndex={assignedIdx!} />
                       ) : (
                         <div className={`h-12 rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] text-muted-foreground transition-all ${
                           isOver ? 'border-accent bg-accent/10' : 'border-border'
@@ -362,18 +365,13 @@ export default function Day10({ onSolved, content }: Props) {
                     (img, i) => img.pair.label === pair.label && !assignedImageIndices.has(i)
                   )
                   return (
-                    <ImageCard
-                      key={realIdx}
-                      pair={pair}
-                      imageIndex={realIdx}
-                    />
+                    <ImageCard key={realIdx} pair={pair} imageIndex={realIdx} />
                   )
                 })}
               </div>
             </div>
           </div>
 
-          {/* Submit */}
           <button
             onClick={handleSubmit}
             disabled={!allAssigned}
@@ -388,9 +386,10 @@ export default function Day10({ onSolved, content }: Props) {
               : `Noch ${unassignedImages.length} Bild${unassignedImages.length !== 1 ? 'er' : ''} zuzuordnen`}
           </button>
 
-          {/* Ghost image that follows the pointer */}
+          {/* Floating ghost */}
           {ghost && (
             <div
+              id="hitster-ghost"
               className="fixed pointer-events-none z-50"
               style={{ left: ghost.x, top: ghost.y, width: ghost.width, height: ghost.height }}
             >
