@@ -198,14 +198,14 @@ function MemoryEditor({
   const update = (i: number, patch: Partial<MemoryPair>) =>
     onChange(pairs.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
 
-  const uploadImage = async (i: number, file: File, slot: 'A' | 'B') => {
+  const uploadImage = async (i: number, file: File) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('day', '2')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
       const data = await res.json() as { url?: string }
-      if (data.url) update(i, slot === 'A' ? { imageA: data.url } : { imageB: data.url })
+      if (data.url) update(i, { imageA: data.url })
     } catch {
       alert('Upload fehlgeschlagen.')
     }
@@ -214,7 +214,7 @@ function MemoryEditor({
   return (
     <div className="flex flex-col gap-4">
       <SectionLabel>
-        Bildpaare — je zwei verschiedene Bilder die zusammen gehoren ({pairs.length} Paare = {pairs.length * 2} Karten)
+        Bildpaare — je ein Bild und ein Name ({pairs.length} Paare = {pairs.length * 2} Karten)
       </SectionLabel>
       {pairs.map((p, i) => (
         <ItemCard key={i}>
@@ -223,54 +223,52 @@ function MemoryEditor({
             <RemoveButton onClick={() => onChange(pairs.filter((_, idx) => idx !== i))} />
           </div>
 
-          {/* Optional label */}
-          <TextInput
-            value={p.label ?? ''}
-            onChange={v => update(i, { label: v })}
-            placeholder="Bezeichnung (optional, wird nach dem Fund angezeigt)"
-          />
+          <div className="grid grid-cols-2 gap-3 items-start">
+            {/* Image slot */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-muted-foreground font-semibold">Bild</p>
+              <TextInput
+                value={p.imageA}
+                onChange={v => update(i, { imageA: v })}
+                placeholder="URL oder nach Upload automatisch"
+              />
+              <label className="text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors text-center">
+                Bild hochladen
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadImage(i, file)
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              {p.imageA && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.imageA}
+                  alt={`Vorschau Paar ${i + 1}`}
+                  className="w-full aspect-square object-cover rounded-xl border border-border mt-1"
+                />
+              )}
+            </div>
 
-          {/* Two image upload slots side by side */}
-          <div className="grid grid-cols-2 gap-3">
-            {(['A', 'B'] as const).map(slot => {
-              const url = slot === 'A' ? p.imageA : p.imageB
-              return (
-                <div key={slot} className="flex flex-col gap-1.5">
-                  <p className="text-xs text-muted-foreground font-semibold">Bild {slot}</p>
-                  <TextInput
-                    value={url}
-                    onChange={v => update(i, slot === 'A' ? { imageA: v } : { imageB: v })}
-                    placeholder="URL oder nach Upload automatisch"
-                  />
-                  <label className="text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors text-center">
-                    Bild hochladen
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]
-                        if (file) uploadImage(i, file, slot)
-                        e.target.value = ''
-                      }}
-                    />
-                  </label>
-                  {url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={url}
-                      alt={`Bild ${slot} von Paar ${i + 1}`}
-                      className="w-full aspect-square object-cover rounded-xl border border-border"
-                    />
-                  )}
-                </div>
-              )
-            })}
+            {/* Name slot */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-muted-foreground font-semibold">Name (Textkarte)</p>
+              <TextInput
+                value={p.name}
+                onChange={v => update(i, { name: v })}
+                placeholder="z.B. Max Mustermann"
+              />
+            </div>
           </div>
         </ItemCard>
       ))}
       <AddButton
-        onClick={() => onChange([...pairs, { imageA: '', imageB: '', label: '' }])}
+        onClick={() => onChange([...pairs, { imageA: '', name: '' }])}
         label="Paar hinzufugen"
       />
     </div>

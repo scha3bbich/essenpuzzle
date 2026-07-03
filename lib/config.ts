@@ -33,14 +33,12 @@ export interface MatchingPair {
   right: string
 }
 
-/** Day 2 – Memory: two different images that belong together as a pair */
+/** Day 2 – Memory: one image and one text name that belong together */
 export interface MemoryPair {
-  /** URL of the first image */
+  /** URL of the image card */
   imageA: string
-  /** URL of the second image (different from imageA) */
-  imageB: string
-  /** Optional label shown after the pair is matched */
-  label?: string
+  /** Text shown on the name card */
+  name: string
 }
 
 /** Day 10 – Hitster: match an audio clip to an image */

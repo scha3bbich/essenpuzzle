@@ -6,20 +6,20 @@ import PuzzleShell from '@/components/puzzle-shell'
 import type { MemoryPair } from '@/lib/config'
 
 // Each card in the deck has an id, a pairIndex (which pair it belongs to),
-// and a slot ('A' or 'B') so two different images can form a match.
+// and a slot: 'A' = image card, 'B' = name/text card.
 interface Card {
-  id: number        // unique index in the shuffled deck
-  pairIndex: number // which pair this card belongs to
-  slot: 'A' | 'B'  // which image of the pair
-  imageUrl: string
-  label: string
+  id: number
+  pairIndex: number
+  slot: 'A' | 'B'
+  imageUrl: string  // only used when slot === 'A'
+  name: string      // displayed on slot B card (and as alt text for A)
 }
 
 function buildDeck(pairs: MemoryPair[]): Card[] {
   const deck: Card[] = []
   pairs.forEach((p, i) => {
-    deck.push({ id: i * 2,     pairIndex: i, slot: 'A', imageUrl: p.imageA, label: p.label ?? '' })
-    deck.push({ id: i * 2 + 1, pairIndex: i, slot: 'B', imageUrl: p.imageB, label: p.label ?? '' })
+    deck.push({ id: i * 2,     pairIndex: i, slot: 'A', imageUrl: p.imageA, name: p.name })
+    deck.push({ id: i * 2 + 1, pairIndex: i, slot: 'B', imageUrl: '',       name: p.name })
   })
   // Fisher-Yates shuffle
   for (let i = deck.length - 1; i > 0; i--) {
@@ -45,7 +45,7 @@ function EmptyState() {
 }
 
 export default function Day2({ onSolved, content }: Props) {
-  const pairs = content?.pairs?.filter(p => p.imageA && p.imageB) ?? []
+  const pairs = content?.pairs?.filter(p => p.imageA && p.name) ?? []
 
   const [deck, setDeck] = useState<Card[]>([])
   const [flipped, setFlipped] = useState<number[]>([])   // indices into deck[]
@@ -165,17 +165,27 @@ export default function Day2({ onSolved, content }: Props) {
                         : 'border-border bg-secondary hover:bg-muted active:scale-95 cursor-pointer'
                     }`}
                     style={{ aspectRatio: '1 / 1' }}
-                    aria-label={faceUp ? (card.label || `Bild ${card.pairIndex + 1}${card.slot}`) : 'Verdeckte Karte'}
+                    aria-label={faceUp ? card.name : 'Verdeckte Karte'}
                   >
                     {faceUp ? (
-                      <Image
-                        src={card.imageUrl}
-                        alt={card.label || `Bild ${card.pairIndex + 1}${card.slot}`}
-                        fill
-                        sizes="(max-width: 768px) 14vw, 10vw"
-                        className="object-cover"
-                        unoptimized
-                      />
+                      card.slot === 'A' ? (
+                        <Image
+                          src={card.imageUrl}
+                          alt={card.name}
+                          fill
+                          sizes="(max-width: 768px) 14vw, 10vw"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        /* Name card — text centred over a coloured background */
+                        <span className="absolute inset-0 flex items-center justify-center bg-accent/20 p-1">
+                          <span className="text-center font-bold text-accent-foreground leading-tight break-words hyphens-auto"
+                            style={{ fontSize: 'clamp(0.55rem, 1.6vw, 0.85rem)' }}>
+                            {card.name}
+                          </span>
+                        </span>
+                      )
                     ) : (
                       <span className="absolute inset-0 flex items-center justify-center text-muted-foreground font-bold text-lg select-none">
                         ?
