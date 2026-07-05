@@ -34,7 +34,7 @@ export default function DayPuzzle({ day, onSolved, config }: Props) {
     case 1:  return <Day1  {...props} content={{ questions: pc?.quizQuestions }} />
     case 2:  return <Day2  {...props} content={{ pairs: pc?.memoryPairs }} />
     case 3:  return <Day3  {...props} content={{ words: pc?.scrambleWords }} />
-    case 4:  return <Day4  {...props} content={{ wordSearchWords: pc?.wordSearchWords }} />
+    case 4:  return <Day4  {...props} content={{ rounds: pc?.geoGuessrRounds ?? [] }} />
     case 5:  return <Day5  {...props} content={{ riddles: pc?.mathRiddles }} />
     case 6:  return <Day6  {...props} content={{ statements: pc?.trueFalseStatements }} />
     case 7:  return <Day7  {...props} content={{ words: pc?.hangmanWords }} />

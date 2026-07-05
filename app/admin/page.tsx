@@ -9,7 +9,7 @@ const DAY_LABELS = [
   'Tag 1 – Quiz',
   'Tag 2 – Memory',
   'Tag 3 – Anagramm',
-  'Tag 4 – Wortsuche',
+  'Tag 4 – Geo-Guesser',
   'Tag 5 – Mathe',
   'Tag 6 – Wahr/Falsch',
   'Tag 7 – Galgenmann',
