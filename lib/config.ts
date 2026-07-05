@@ -43,8 +43,8 @@ export interface GeoGuessrRound {
   lat: number
   /** Correct longitude */
   lng: number
-  /** Radius in km within which a guess is accepted */
-  thresholdKm: number
+  /** Radius in metres within which a guess is accepted */
+  thresholdM: number
 }
 
 /** Day 2 – Memory: one image and one text name that belong together */
@@ -177,7 +177,7 @@ export const DEFAULT_CONFIG: AdminConfig = {
       unlockTimeMEZ: '13:30',
       successImageUrl: '/camp-success.png',
       puzzleContent: {
-        geoGuessrRounds: [],
+        geoGuessrRounds: [] as GeoGuessrRound[],
       },
     },
     // Day 5 – Math

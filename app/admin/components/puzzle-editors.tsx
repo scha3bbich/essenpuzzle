@@ -374,14 +374,14 @@ function GeoGuessrEditor({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground font-semibold">Toleranz (km)</p>
+              <p className="text-xs text-muted-foreground font-semibold">Toleranz (m)</p>
               <input
                 type="number"
-                min="0.1"
-                step="0.5"
-                value={r.thresholdKm || ''}
-                onChange={e => update(i, { thresholdKm: parseFloat(e.target.value) || 1 })}
-                placeholder="z.B. 5"
+                min="10"
+                step="50"
+                value={r.thresholdM || ''}
+                onChange={e => update(i, { thresholdM: parseFloat(e.target.value) || 500 })}
+                placeholder="z.B. 500"
                 className="border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40 w-full"
               />
             </div>
@@ -401,7 +401,7 @@ function GeoGuessrEditor({
         </ItemCard>
       ))}
       <AddButton
-        onClick={() => onChange([...rounds, { imageUrl: '', label: '', lat: 0, lng: 0, thresholdKm: 5 }])}
+        onClick={() => onChange([...rounds, { imageUrl: '', label: '', lat: 0, lng: 0, thresholdM: 500 }])}
         label="Runde hinzufugen"
       />
     </div>

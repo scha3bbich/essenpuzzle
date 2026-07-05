@@ -53,7 +53,7 @@ export default function Day4({ onSolved, content }: Props) {
   const handleSubmit = useCallback(() => {
     if (!guess || !round) return
     const distKm = haversineKm(guess.lat, guess.lng, round.lat, round.lng)
-    const correct = distKm <= round.thresholdKm
+    const correct = distKm * 1000 <= round.thresholdM
     setResult({ distKm, correct, guessLat: guess.lat, guessLng: guess.lng })
   }, [guess, round])
 
@@ -122,7 +122,7 @@ export default function Day4({ onSolved, content }: Props) {
           Geo-Guesser
         </span>
         <span className="text-sm font-bold text-primary bg-primary/10 rounded-full px-3 py-0.5">
-          &le;&thinsp;{round.thresholdKm}&thinsp;km
+          &le;&thinsp;{round.thresholdM}&thinsp;m
         </span>
       </div>
 
