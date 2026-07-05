@@ -1,156 +1,204 @@
 'use client'
 
-import { useState } from 'react'
-import PuzzleShell from '@/components/puzzle-shell'
+import dynamic from 'next/dynamic'
+import { useState, useCallback, useEffect } from 'react'
+import type { GeoGuessrRound } from '@/lib/config'
 
-// 8x8 grid, words: SUPPE, BROT, SALZ, TOPF
-const GRID = [
-  ['S', 'U', 'P', 'P', 'E', 'R', 'A', 'T'],
-  ['A', 'L', 'T', 'O', 'P', 'F', 'N', 'E'],
-  ['L', 'A', 'G', 'E', 'R', 'F', 'E', 'U'],
-  ['Z', 'S', 'B', 'R', 'O', 'T', 'K', 'M'],
-  ['K', 'E', 'I', 'N', 'S', 'A', 'L', 'Z'],
-  ['T', 'O', 'P', 'F', 'C', 'H', 'I', 'P'],
-  ['W', 'A', 'S', 'S', 'E', 'R', 'N', 'O'],
-  ['G', 'R', 'A', 'S', 'T', 'A', 'G', 'S'],
-]
+// Leaflet must be loaded client-side only
+const MapView = dynamic(() => import('./day4-map'), { ssr: false })
 
-// [word, [[row,col], ...]]
-const SOLUTIONS: [string, [number, number][]][] = [
-  ['SUPPE', [[0,0],[0,1],[0,2],[0,3],[0,4]]],
-  ['TOPF',  [[1,3],[1,4],[1,5],[2,3]]],   // actually T-O-P-F: row1col1=L... let me fix
-  ['SALZ',  [[0,0],[1,0],[2,0],[3,0]]],
-  ['BROT',  [[3,2],[3,3],[3,4],[3,5]]],
-]
-
-// Corrected TOPF: row1=[A,L,T,O,P,F,N,E] -> col2=T,col3=O,col4=P,col5=F
-const SOLUTION_MAP: Record<string, [number, number][]> = {
-  'SUPPE': [[0,0],[0,1],[0,2],[0,3],[0,4]],
-  'TOPF':  [[1,2],[1,3],[1,4],[1,5]],
-  'SALZ':  [[0,0],[1,0],[2,0],[3,0]],
-  'BROT':  [[3,2],[3,3],[3,4],[3,5]],
+// Haversine distance in km
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-const WORDS_TO_FIND = ['SUPPE', 'TOPF', 'SALZ', 'BROT']
+interface Props {
+  onSolved: () => void
+  content: { rounds: GeoGuessrRound[] }
+}
 
-function cellKey(r: number, c: number) { return `${r}-${c}` }
+type GuessResult = {
+  distKm: number
+  correct: boolean
+  guessLat: number
+  guessLng: number
+}
 
-// Note: the grid and SOLUTION_MAP are hardcoded. wordSearchWords in content is
-// informational only and not used by the game logic.
-interface Props { onSolved: () => void; content?: { wordSearchWords?: string[] } }
+export default function Day4({ onSolved, content }: Props) {
+  const rounds = content.rounds ?? []
+  const [roundIdx, setRoundIdx] = useState(0)
+  const [guess, setGuess] = useState<{ lat: number; lng: number } | null>(null)
+  const [result, setResult] = useState<GuessResult | null>(null)
+  const [allSolved, setAllSolved] = useState(false)
 
-export default function Day4({ onSolved, content: _content }: Props) {
-  const [found, setFound] = useState<string[]>([])
-  const [selecting, setSelecting] = useState<[number, number][]>([])
-  const [wrong, setWrong] = useState(false)
+  const round = rounds[roundIdx]
 
-  const foundCells = new Set<string>(
-    found.flatMap(w => (SOLUTION_MAP[w] || []).map(([r, c]) => cellKey(r, c)))
+  const handleMapClick = useCallback(
+    (lat: number, lng: number) => {
+      if (result?.correct) return
+      setGuess({ lat, lng })
+      setResult(null)
+    },
+    [result],
   )
-  const selectingCells = new Set<string>(selecting.map(([r, c]) => cellKey(r, c)))
 
-  const toggleCell = (r: number, c: number) => {
-    const key = cellKey(r, c)
-    if (foundCells.has(key)) return
-    setSelecting(prev => {
-      if (prev.some(([pr, pc]) => pr === r && pc === c)) {
-        return prev.filter(([pr, pc]) => !(pr === r && pc === c))
-      }
-      return [...prev, [r, c]]
-    })
-    setWrong(false)
-  }
+  const handleSubmit = useCallback(() => {
+    if (!guess || !round) return
+    const distKm = haversineKm(guess.lat, guess.lng, round.lat, round.lng)
+    const correct = distKm * 1000 <= round.thresholdM
+    setResult({ distKm, correct, guessLat: guess.lat, guessLng: guess.lng })
+  }, [guess, round])
 
-  const checkSelection = () => {
-    for (const word of WORDS_TO_FIND) {
-      if (found.includes(word)) continue
-      const sol = SOLUTION_MAP[word]
-      if (
-        selecting.length === sol.length &&
-        sol.every(([r, c]) => selecting.some(([sr, sc]) => sr === r && sc === c))
-      ) {
-        const newFound = [...found, word]
-        setFound(newFound)
-        setSelecting([])
-        if (newFound.length === WORDS_TO_FIND.length) {
-          setTimeout(onSolved, 800)
-        }
-        return
-      }
+  const handleNext = useCallback(() => {
+    const next = roundIdx + 1
+    if (next >= rounds.length) {
+      setAllSolved(true)
+    } else {
+      setRoundIdx(next)
+      setGuess(null)
+      setResult(null)
     }
-    setWrong(true)
-    setTimeout(() => { setSelecting([]); setWrong(false) }, 700)
+  }, [roundIdx, rounds.length])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Enter') return
+      if (result?.correct) handleNext()
+      else if (guess && !result) handleSubmit()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [guess, result, handleNext, handleSubmit])
+
+  // All rounds solved
+  if (allSolved) {
+    return (
+      <main className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <p className="font-heading text-4xl text-primary">Alle Orte gefunden!</p>
+        <p className="text-muted-foreground text-lg">
+          Du hast alle {rounds.length} Runden gelöst.
+        </p>
+        <button
+          onClick={onSolved}
+          className="bg-primary text-primary-foreground font-bold px-8 py-4 rounded-2xl text-xl hover:opacity-90 active:scale-95 transition-all"
+        >
+          Weiter
+        </button>
+      </main>
+    )
   }
+
+  // Empty state
+  if (rounds.length === 0 || !round) {
+    return (
+      <main className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-3 text-center p-6 text-muted-foreground">
+        <p className="text-lg font-semibold">Noch keine Orte hinterlegt.</p>
+        <p className="text-sm">
+          Bitte im Admin-Panel unter Tag 4 die Geo-Guesser-Runden hinzufügen.
+        </p>
+      </main>
+    )
+  }
+
+  const distLabel = (km: number) =>
+    km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 
   return (
-    <PuzzleShell
-      day={4}
-      title="Wortsuche"
-      description="Finde die 4 Zeltlager-Wörter im Buchstabengitter! Markiere die Buchstaben und bestätige."
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex gap-2 flex-wrap">
-          {WORDS_TO_FIND.map(w => (
-            <span
-              key={w}
-              className={`px-3 py-1 rounded-lg text-sm font-bold border-2 transition-all ${
-                found.includes(w)
-                  ? 'bg-primary/15 border-primary text-primary line-through'
-                  : 'bg-secondary border-border text-foreground'
-              }`}
-            >
-              {w}
-            </span>
-          ))}
+    <main className="fixed inset-0 bg-background flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2 border-b border-border bg-card">
+        <span className="text-sm font-semibold text-muted-foreground">
+          Runde {roundIdx + 1}&thinsp;/&thinsp;{rounds.length}
+        </span>
+        <span className="font-heading text-base text-foreground text-center leading-tight truncate">
+          Geo-Guesser
+        </span>
+        <span className="text-sm font-bold text-primary bg-primary/10 rounded-full px-3 py-0.5">
+          &le;&thinsp;{round.thresholdM}&thinsp;m
+        </span>
+      </div>
+
+      {/* Photo + Map */}
+      <div className="flex-1 min-h-0 flex flex-col sm:flex-row">
+        {/* Photo */}
+        <div
+          className="sm:w-[38%] shrink-0 relative bg-black flex items-center justify-center overflow-hidden border-b sm:border-b-0 sm:border-r border-border"
+          style={{ maxHeight: '45dvh', minHeight: 100 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={round.imageUrl}
+            alt="Wo wurde dieses Foto aufgenommen?"
+            className="w-full h-full object-contain"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-2 pointer-events-none">
+            <p className="text-white text-xs font-semibold text-center">
+              Wo wurde dieses Foto aufgenommen?
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(8, 1fr)` }}>
-          {GRID.map((row, r) =>
-            row.map((ch, c) => {
-              const key = cellKey(r, c)
-              const isFound = foundCells.has(key)
-              const isSel = selectingCells.has(key)
-              return (
-                <button
-                  key={key}
-                  onClick={() => toggleCell(r, c)}
-                  className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all select-none
-                    ${isFound ? 'bg-primary text-primary-foreground' : ''}
-                    ${isSel && !isFound ? 'bg-accent text-accent-foreground scale-110' : ''}
-                    ${!isFound && !isSel ? 'bg-secondary text-foreground hover:bg-muted' : ''}
-                  `}
-                >
-                  {ch}
-                </button>
-              )
-            })
+        {/* Map */}
+        <div className="flex-1 min-h-0 relative">
+          <MapView
+            onMapClick={handleMapClick}
+            guess={guess}
+            result={result}
+            targetLat={result?.correct ? round.lat : undefined}
+            targetLng={result?.correct ? round.lng : undefined}
+          />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="shrink-0 border-t border-border bg-card px-4 py-2.5 flex items-center justify-between gap-4 min-h-[56px]">
+        <div className="flex-1 min-w-0">
+          {!guess && !result && (
+            <p className="text-sm text-muted-foreground">
+              Tippe auf die Karte, um deinen Tipp zu setzen.
+            </p>
+          )}
+          {guess && !result && (
+            <p className="text-sm text-foreground">Tipp gesetzt — bereit zum Abschicken!</p>
+          )}
+          {result && !result.correct && (
+            <p className="text-sm text-destructive font-semibold">
+              Leider falsch — du warst {distLabel(result.distKm)} entfernt. Versuche es erneut!
+            </p>
+          )}
+          {result?.correct && (
+            <p className="text-sm text-primary font-semibold">
+              Richtig! Nur {distLabel(result.distKm)} entfernt.
+              {round.label ? ` Das war: ${round.label}` : ''}
+            </p>
           )}
         </div>
 
-        <div className="flex gap-2 items-center">
+        {result?.correct ? (
           <button
-            onClick={checkSelection}
-            disabled={selecting.length === 0}
-            className="flex-1 bg-primary text-primary-foreground font-bold py-2.5 rounded-xl hover:opacity-90 disabled:opacity-40 active:scale-95 transition-all"
+            onClick={handleNext}
+            className="shrink-0 bg-primary text-primary-foreground font-bold px-5 py-2 rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm"
           >
-            Prüfen ({selecting.length} Buchstaben)
+            {roundIdx + 1 < rounds.length ? 'Nächste Runde' : 'Fertig'}
           </button>
+        ) : (
           <button
-            onClick={() => setSelecting([])}
-            className="px-4 py-2.5 border-2 border-border rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-all"
+            onClick={handleSubmit}
+            disabled={!guess}
+            className="shrink-0 bg-primary text-primary-foreground font-bold px-5 py-2 rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Reset
+            Abschicken
           </button>
-        </div>
-        {wrong && (
-          <p className="text-destructive text-sm text-center font-semibold animate-wiggle">
-            Kein passendes Wort — versuche es nochmal!
-          </p>
         )}
-        <p className="text-xs text-muted-foreground text-center">
-          Gefunden: {found.length} / {WORDS_TO_FIND.length}
-        </p>
       </div>
-    </PuzzleShell>
+    </main>
   )
 }

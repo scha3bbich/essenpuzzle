@@ -9,6 +9,7 @@ import type {
   HangmanWord,
   HitsterPair,
   MemoryPair,
+  GeoGuessrRound,
   FinalStage,
 } from '@/lib/config'
 
@@ -270,6 +271,138 @@ function MemoryEditor({
       <AddButton
         onClick={() => onChange([...pairs, { imageA: '', name: '' }])}
         label="Paar hinzufugen"
+      />
+    </div>
+  )
+}
+
+// ─── Day 4: Geo-Guesser ───────────────────────────────────────────────────────
+
+function GeoGuessrEditor({
+  rounds,
+  onChange,
+}: {
+  rounds: GeoGuessrRound[]
+  onChange: (r: GeoGuessrRound[]) => void
+}) {
+  const update = (i: number, patch: Partial<GeoGuessrRound>) =>
+    onChange(rounds.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+
+  const uploadImage = async (i: number, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('day', '4')
+    try {
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
+      const data = await res.json() as { url?: string }
+      if (data.url) update(i, { imageUrl: data.url })
+    } catch {
+      alert('Upload fehlgeschlagen.')
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <SectionLabel>Geo-Guesser Runden ({rounds.length})</SectionLabel>
+      {rounds.map((r, i) => (
+        <ItemCard key={i}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-bold">Runde {i + 1}</span>
+            <RemoveButton onClick={() => onChange(rounds.filter((_, idx) => idx !== i))} />
+          </div>
+
+          {/* Label */}
+          <TextInput
+            value={r.label}
+            onChange={v => update(i, { label: v })}
+            placeholder="Ortsbezeichnung (wird nach richtigem Tipp angezeigt)"
+          />
+
+          {/* Image upload */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs text-muted-foreground font-semibold">Foto des Ortes</p>
+            <TextInput
+              value={r.imageUrl}
+              onChange={v => update(i, { imageUrl: v })}
+              placeholder="URL oder nach Upload automatisch"
+            />
+            <label className="text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors text-center">
+              Bild hochladen
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) uploadImage(i, file)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {r.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={r.imageUrl}
+                alt={`Vorschau Runde ${i + 1}`}
+                className="w-full max-h-40 object-cover rounded-xl border border-border mt-1"
+              />
+            )}
+          </div>
+
+          {/* Coordinates + threshold */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-semibold">Breitengrad (lat)</p>
+              <input
+                type="number"
+                step="0.000001"
+                value={r.lat || ''}
+                onChange={e => update(i, { lat: parseFloat(e.target.value) || 0 })}
+                placeholder="z.B. 48.1374"
+                className="border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40 w-full"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-semibold">Längengrad (lng)</p>
+              <input
+                type="number"
+                step="0.000001"
+                value={r.lng || ''}
+                onChange={e => update(i, { lng: parseFloat(e.target.value) || 0 })}
+                placeholder="z.B. 11.5755"
+                className="border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40 w-full"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-semibold">Toleranz (m)</p>
+              <input
+                type="number"
+                min="10"
+                step="50"
+                value={r.thresholdM || ''}
+                onChange={e => update(i, { thresholdM: parseFloat(e.target.value) || 500 })}
+                placeholder="z.B. 500"
+                className="border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40 w-full"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Tipp: Koordinaten findest du auf{' '}
+            <a
+              href="https://www.openstreetmap.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline"
+            >
+              openstreetmap.org
+            </a>{' '}
+            — Rechtsklick auf den Ort &rarr; &ldquo;Adresse anzeigen&rdquo;.
+          </p>
+        </ItemCard>
+      ))}
+      <AddButton
+        onClick={() => onChange([...rounds, { imageUrl: '', label: '', lat: 0, lng: 0, thresholdM: 500 }])}
+        label="Runde hinzufugen"
       />
     </div>
   )
@@ -722,21 +855,10 @@ export default function PuzzleContentEditor({ day, content, onChange }: PuzzleEd
         />
       )}
       {day === 4 && (
-        <div className="bg-muted/50 border border-border rounded-xl p-4 text-sm text-muted-foreground">
-          Das Buchstabengitter fur Tag 4 ist im Code fixiert und kann hier nicht bearbeitet werden.
-          Die unten gezeigten Worter sind nur zur Dokumentation.
-          <div className="flex flex-col gap-1.5 mt-3">
-            {(content.wordSearchWords ?? []).map((w, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <TextInput
-                  value={w}
-                  onChange={v => onChange({ ...content, wordSearchWords: (content.wordSearchWords ?? []).map((x, idx) => idx === i ? v : x) })}
-                  placeholder="Wort"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <GeoGuessrEditor
+          rounds={content.geoGuessrRounds ?? []}
+          onChange={r => onChange({ ...content, geoGuessrRounds: r })}
+        />
       )}
       {day === 5 && (
         <MathEditor

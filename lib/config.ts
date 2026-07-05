@@ -33,6 +33,20 @@ export interface MatchingPair {
   right: string
 }
 
+/** Day 4 – Geo-Guesser: one photo-location round */
+export interface GeoGuessrRound {
+  /** URL of the photo shown to the player */
+  imageUrl: string
+  /** Display name / description shown after a correct guess */
+  label: string
+  /** Correct latitude */
+  lat: number
+  /** Correct longitude */
+  lng: number
+  /** Radius in metres within which a guess is accepted */
+  thresholdM: number
+}
+
 /** Day 2 – Memory: one image and one text name that belong together */
 export interface MemoryPair {
   /** URL of the image card */
@@ -66,7 +80,9 @@ export interface DayPuzzleContent {
   memoryPairs?: MemoryPair[]
   // Day 3 – Scramble
   scrambleWords?: ScrambleWord[]
-  // Day 4 – Word Search (grid is fixed in code; words here are display-only)
+  // Day 4 – Geo-Guesser
+  geoGuessrRounds?: GeoGuessrRound[]
+  // Day 4 legacy – Word Search (kept for backwards compat)
   wordSearchWords?: string[]
   // Day 5 – Math
   mathRiddles?: MathRiddle[]
@@ -156,12 +172,12 @@ export const DEFAULT_CONFIG: AdminConfig = {
         ],
       },
     },
-    // Day 4 – Word Search (grid is hardcoded in component)
+    // Day 4 – Geo-Guesser (rounds added via admin)
     {
       unlockTimeMEZ: '13:30',
       successImageUrl: '/camp-success.png',
       puzzleContent: {
-        wordSearchWords: ['SUPPE', 'TOPF', 'SALZ', 'BROT'],
+        geoGuessrRounds: [] as GeoGuessrRound[],
       },
     },
     // Day 5 – Math
