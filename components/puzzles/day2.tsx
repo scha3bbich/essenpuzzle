@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
-import PuzzleShell from '@/components/puzzle-shell'
 import type { MemoryPair } from '@/lib/config'
 
 // Each card in the deck has an id, a pairIndex (which pair it belongs to),
@@ -34,29 +33,45 @@ interface Props {
   content?: { pairs?: MemoryPair[] }
 }
 
-// Placeholder card shown when no pairs are configured yet
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground">
-      <p className="text-lg font-semibold">Noch keine Bilder hinterlegt.</p>
-      <p className="text-sm">Bitte im Admin-Panel unter Tag 2 die Bildpaare hinzufugen.</p>
-    </div>
-  )
-}
+const COLS = 7
 
 export default function Day2({ onSolved, content }: Props) {
   const pairs = content?.pairs?.filter(p => p.imageA && p.name) ?? []
 
   const [deck, setDeck] = useState<Card[]>([])
-  const [flipped, setFlipped] = useState<number[]>([])   // indices into deck[]
-  const [matched, setMatched] = useState<Set<number>>(new Set()) // card ids
+  const [flipped, setFlipped] = useState<number[]>([])
+  const [matched, setMatched] = useState<Set<number>>(new Set())
   const [moves, setMoves] = useState(0)
   const [won, setWon] = useState(false)
   const [lock, setLock] = useState(false)
 
+  // Measure the available grid area so cards fill it exactly
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [cardSize, setCardSize] = useState(0)
+
   useEffect(() => {
     if (pairs.length > 0) setDeck(buildDeck(pairs))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const rows = Math.ceil((pairs.length * 2) / COLS)
+    const gap = 4 // px — matches gap-1
+
+    function measure() {
+      if (!gridRef.current) return
+      const { width, height } = gridRef.current.getBoundingClientRect()
+      const totalGapW = gap * (COLS - 1)
+      const totalGapH = gap * (rows - 1)
+      const byWidth  = (width  - totalGapW) / COLS
+      const byHeight = (height - totalGapH) / rows
+      setCardSize(Math.floor(Math.min(byWidth, byHeight)))
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (gridRef.current) ro.observe(gridRef.current)
+    return () => ro.disconnect()
+  }, [pairs.length])
 
   const handleFlip = useCallback((deckIdx: number) => {
     if (lock) return
@@ -76,7 +91,6 @@ export default function Day2({ onSolved, content }: Props) {
       const cardB = deck[bi]
 
       if (cardA.pairIndex === cardB.pairIndex && cardA.slot !== cardB.slot) {
-        // Correct pair
         const newMatched = new Set(matched)
         newMatched.add(cardA.id)
         newMatched.add(cardB.id)
@@ -93,111 +107,118 @@ export default function Day2({ onSolved, content }: Props) {
     }
   }, [lock, flipped, matched, deck])
 
-  if (pairs.length === 0) {
+  // ── Won screen ──────────────────────────────────────────────────────────────
+  if (won) {
     return (
-      <PuzzleShell day={2} title="Zeltlager Memory" description="Finde alle passenden Bildpaare!">
-        <EmptyState />
-      </PuzzleShell>
+      <main className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <p className="font-heading text-4xl text-primary">Alle Paare gefunden!</p>
+        <p className="text-muted-foreground text-lg">{moves} Züge</p>
+        <button
+          onClick={onSolved}
+          className="bg-primary text-primary-foreground font-bold px-8 py-4 rounded-2xl text-xl hover:opacity-90 active:scale-95 transition-all"
+        >
+          Weiter
+        </button>
+      </main>
     )
   }
 
-  // 7-column grid; rows fill automatically
-  const COLS = 7
+  // ── Empty state ─────────────────────────────────────────────────────────────
+  if (pairs.length === 0) {
+    return (
+      <main className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-3 text-center p-6 text-muted-foreground">
+        <p className="text-lg font-semibold">Noch keine Bilder hinterlegt.</p>
+        <p className="text-sm">Bitte im Admin-Panel unter Tag 2 die Bildpaare hinzufügen.</p>
+      </main>
+    )
+  }
+
+  // ── Game ────────────────────────────────────────────────────────────────────
+  // Layout: fixed full-screen, stats bar on top, grid fills the rest
+  const STATS_H = 36 // px — height of the stats bar + gap
 
   return (
-    <PuzzleShell
-      day={2}
-      title="Zeltlager Memory"
-      description="Finde alle passenden Bildpaare!"
-    >
-      {won ? (
-        <div className="flex flex-col items-center gap-4 text-center py-4">
-          <div className="text-6xl">🎉</div>
-          <p className="font-heading text-3xl text-primary">Alle Paare gefunden!</p>
-          <p className="text-muted-foreground">Du hast {moves} Züge gebraucht.</p>
-          <button
-            onClick={onSolved}
-            className="mt-2 bg-primary text-primary-foreground font-bold px-6 py-3 rounded-2xl hover:opacity-90 active:scale-95 transition-all"
-          >
-            Weiter
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {/* Stats bar */}
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground font-semibold">
-              Paare: {matched.size / 2} / {pairs.length}
-            </span>
-            <span className="text-sm bg-primary/10 text-primary rounded-full px-3 py-0.5 font-bold">
-              Züge: {moves}
-            </span>
-          </div>
+    <main className="fixed inset-0 bg-background flex flex-col p-1.5 gap-1">
+      {/* Stats bar */}
+      <div
+        className="flex justify-between items-center px-2 shrink-0"
+        style={{ height: STATS_H }}
+      >
+        <span className="text-sm text-muted-foreground font-semibold">
+          Paare: {matched.size / 2}&thinsp;/&thinsp;{pairs.length}
+        </span>
+        <span className="font-heading text-lg text-foreground text-balance text-center leading-none">
+          Gruppenleiter Memory
+        </span>
+        <span className="text-sm bg-primary/10 text-primary rounded-full px-3 py-0.5 font-bold">
+          Züge: {moves}
+        </span>
+      </div>
 
-          {/*
-            The grid fills the available width. Each card is square.
-            We use a fixed 7-column grid and rely on aspect-ratio to keep cards square.
-            The outer wrapper uses overflow-auto so it scrolls only if truly needed
-            (e.g. portrait mode with many pairs).
-          */}
+      {/*
+        Grid wrapper — fills all remaining space.
+        We measure this element and compute the card size that fits without overflow.
+      */}
+      <div ref={gridRef} className="flex-1 min-h-0 flex items-center justify-center">
+        {cardSize > 0 && (
           <div
-            className="w-full overflow-auto"
-            style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+            className="grid"
+            style={{
+              gridTemplateColumns: `repeat(${COLS}, ${cardSize}px)`,
+              gap: 4,
+            }}
           >
-            <div
-              className="grid gap-1.5"
-              style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}
-            >
-              {deck.map((card, deckIdx) => {
-                const isFlipped = flipped.includes(deckIdx)
-                const isMatched = matched.has(card.id)
-                const faceUp = isFlipped || isMatched
+            {deck.map((card, deckIdx) => {
+              const isFlipped = flipped.includes(deckIdx)
+              const isMatched = matched.has(card.id)
+              const faceUp = isFlipped || isMatched
 
-                return (
-                  <button
-                    key={card.id}
-                    onClick={() => handleFlip(deckIdx)}
-                    className={`relative w-full rounded-xl overflow-hidden border-2 transition-all duration-200 select-none touch-manipulation focus:outline-none ${
-                      isMatched
-                        ? 'border-primary ring-1 ring-primary/40 opacity-70 scale-95'
-                        : isFlipped
-                        ? 'border-accent shadow-md scale-100'
-                        : 'border-border bg-secondary hover:bg-muted active:scale-95 cursor-pointer'
-                    }`}
-                    style={{ aspectRatio: '1 / 1' }}
-                    aria-label={faceUp ? card.name : 'Verdeckte Karte'}
-                  >
-                    {faceUp ? (
-                      card.slot === 'A' ? (
-                        <Image
-                          src={card.imageUrl}
-                          alt={card.name}
-                          fill
-                          sizes="(max-width: 768px) 14vw, 10vw"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        /* Name card — text centred over a coloured background */
-                        <span className="absolute inset-0 flex items-center justify-center bg-accent/20 p-1">
-                          <span className="text-center font-bold text-accent-foreground leading-tight break-words hyphens-auto"
-                            style={{ fontSize: 'clamp(0.55rem, 1.6vw, 0.85rem)' }}>
-                            {card.name}
-                          </span>
-                        </span>
-                      )
+              return (
+                <button
+                  key={card.id}
+                  onClick={() => handleFlip(deckIdx)}
+                  className={`relative overflow-hidden rounded-lg border-2 transition-all duration-200 select-none touch-manipulation focus:outline-none ${
+                    isMatched
+                      ? 'border-primary opacity-60 scale-95'
+                      : isFlipped
+                      ? 'border-accent shadow-md'
+                      : 'border-border bg-secondary hover:bg-muted active:scale-95 cursor-pointer'
+                  }`}
+                  style={{ width: cardSize, height: cardSize }}
+                  aria-label={faceUp ? card.name : 'Verdeckte Karte'}
+                >
+                  {faceUp ? (
+                    card.slot === 'A' ? (
+                      <Image
+                        src={card.imageUrl}
+                        alt={card.name}
+                        fill
+                        sizes={`${cardSize}px`}
+                        className="object-cover"
+                        unoptimized
+                      />
                     ) : (
-                      <span className="absolute inset-0 flex items-center justify-center text-muted-foreground font-bold text-lg select-none">
-                        ?
+                      <span className="absolute inset-0 flex items-center justify-center bg-accent/20 p-1">
+                        <span
+                          className="text-center font-bold text-accent-foreground leading-tight break-words hyphens-auto"
+                          style={{ fontSize: Math.max(10, Math.round(cardSize * 0.18)) }}
+                        >
+                          {card.name}
+                        </span>
                       </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+                    )
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center text-muted-foreground font-bold select-none"
+                      style={{ fontSize: Math.max(12, Math.round(cardSize * 0.35)) }}>
+                      ?
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
-        </div>
-      )}
-    </PuzzleShell>
+        )}
+      </div>
+    </main>
   )
 }
