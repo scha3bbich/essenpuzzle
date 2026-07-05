@@ -33,6 +33,14 @@ export interface MatchingPair {
   right: string
 }
 
+/** Day 2 – Memory: one image and one text name that belong together */
+export interface MemoryPair {
+  /** URL of the image card */
+  imageA: string
+  /** Text shown on the name card */
+  name: string
+}
+
 /** Day 10 – Hitster: match an audio clip to an image */
 export interface HitsterPair {
   /** Public URL of the audio file (MP3/OGG etc.) */
@@ -54,8 +62,8 @@ export interface FinalStage {
 export interface DayPuzzleContent {
   // Day 1 – Quiz
   quizQuestions?: QuizQuestion[]
-  // Day 2 – Memory
-  memoryPairs?: string[]
+  // Day 2 – Memory (two different images per pair)
+  memoryPairs?: MemoryPair[]
   // Day 3 – Scramble
   scrambleWords?: ScrambleWord[]
   // Day 4 – Word Search (grid is fixed in code; words here are display-only)
@@ -127,12 +135,12 @@ export const DEFAULT_CONFIG: AdminConfig = {
         ],
       },
     },
-    // Day 2 – Memory
+    // Day 2 – Memory (image pairs added via admin)
     {
       unlockTimeMEZ: '13:30',
       successImageUrl: '/camp-success.png',
       puzzleContent: {
-        memoryPairs: ['🍲', '🥗', '🥕', '🧅', '🍞', '🧀', '🥚', '🌽'],
+        memoryPairs: [],
       },
     },
     // Day 3 – Scramble

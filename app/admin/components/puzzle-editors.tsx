@@ -8,6 +8,7 @@ import type {
   TrueFalseStatement,
   HangmanWord,
   HitsterPair,
+  MemoryPair,
   FinalStage,
 } from '@/lib/config'
 
@@ -187,21 +188,89 @@ function QuizEditor({
 
 // ─── Day 2: Memory ────────────────────────────────────────────────────────────
 
-function MemoryEditor({ pairs, onChange }: { pairs: string[]; onChange: (p: string[]) => void }) {
+function MemoryEditor({
+  pairs,
+  onChange,
+}: {
+  pairs: MemoryPair[]
+  onChange: (p: MemoryPair[]) => void
+}) {
+  const update = (i: number, patch: Partial<MemoryPair>) =>
+    onChange(pairs.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
+
+  const uploadImage = async (i: number, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('day', '2')
+    try {
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
+      const data = await res.json() as { url?: string }
+      if (data.url) update(i, { imageA: data.url })
+    } catch {
+      alert('Upload fehlgeschlagen.')
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Karten-Paare (Emoji oder Text)</SectionLabel>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {pairs.map((p, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <TextInput value={p} onChange={v => onChange(pairs.map((x, idx) => (idx === i ? v : x)))} placeholder="Symbol" />
-            {pairs.length > 2 && (
-              <button onClick={() => onChange(pairs.filter((_, idx) => idx !== i))} className="text-xs text-destructive shrink-0">x</button>
-            )}
+    <div className="flex flex-col gap-4">
+      <SectionLabel>
+        Bildpaare — je ein Bild und ein Name ({pairs.length} Paare = {pairs.length * 2} Karten)
+      </SectionLabel>
+      {pairs.map((p, i) => (
+        <ItemCard key={i}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-bold">Paar {i + 1}</span>
+            <RemoveButton onClick={() => onChange(pairs.filter((_, idx) => idx !== i))} />
           </div>
-        ))}
-      </div>
-      <AddButton onClick={() => onChange([...pairs, ''])} label="Karte hinzufugen" />
+
+          <div className="grid grid-cols-2 gap-3 items-start">
+            {/* Image slot */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-muted-foreground font-semibold">Bild</p>
+              <TextInput
+                value={p.imageA}
+                onChange={v => update(i, { imageA: v })}
+                placeholder="URL oder nach Upload automatisch"
+              />
+              <label className="text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors text-center">
+                Bild hochladen
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadImage(i, file)
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              {p.imageA && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.imageA}
+                  alt={`Vorschau Paar ${i + 1}`}
+                  className="w-full aspect-square object-cover rounded-xl border border-border mt-1"
+                />
+              )}
+            </div>
+
+            {/* Name slot */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-muted-foreground font-semibold">Name (Textkarte)</p>
+              <TextInput
+                value={p.name}
+                onChange={v => update(i, { name: v })}
+                placeholder="z.B. Max Mustermann"
+              />
+            </div>
+          </div>
+        </ItemCard>
+      ))}
+      <AddButton
+        onClick={() => onChange([...pairs, { imageA: '', name: '' }])}
+        label="Paar hinzufugen"
+      />
     </div>
   )
 }
