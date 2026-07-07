@@ -40,50 +40,46 @@ export default function SolvedScreen({ day, onDayChange, imageUrl, nextUnlockTim
   }, [day, nextUnlock, onDayChange])
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
-      <div className="animate-bounce-in w-full max-w-lg flex flex-col items-center text-center gap-6">
+    <main className="fixed inset-0 bg-background">
+      {/* Full-screen image */}
+      <Image
+        src={displayImage}
+        alt={`Erfolgsbild Tag ${day}`}
+        fill
+        className="object-cover"
+        priority
+        unoptimized
+      />
 
-        <div className="bg-primary text-primary-foreground rounded-full px-5 py-1.5 text-sm font-semibold uppercase tracking-widest">
+      {/* Dark gradient overlay at bottom so text is always readable */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-16 pb-6 px-5 flex flex-col items-center gap-3 text-center">
+
+        <div className="bg-primary text-primary-foreground rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-widest">
           Tag {day} geschafft!
         </div>
 
-        <h1 className="font-heading text-4xl md:text-5xl text-primary text-balance">
+        <h1 className="font-heading text-3xl md:text-4xl text-white text-balance drop-shadow">
           Gut gemacht!
         </h1>
 
-        <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-lg border-4 border-primary/20">
-          <Image
-            src={displayImage}
-            alt={`Erfolgsbild Tag ${day}`}
-            fill
-            className="object-cover"
-            priority
-            unoptimized
-          />
-        </div>
-
         {isLastDay ? (
-          <div className="bg-accent/10 border border-accent/30 rounded-2xl px-6 py-5 w-full">
-            <p className="font-heading text-2xl text-accent mb-1">Alle 12 Tage gemeistert!</p>
-            <p className="text-muted-foreground">
+          <div className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 w-full max-w-sm">
+            <p className="font-heading text-xl text-accent mb-0.5">Alle 12 Tage gemeistert!</p>
+            <p className="text-white/80 text-sm">
               Ihr habt alle Rätsel des Zeltlagers gelöst. Mahlzeit!
             </p>
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-2xl px-6 py-5 w-full shadow-sm">
-            <p className="text-sm text-muted-foreground uppercase tracking-widest font-semibold mb-2">
+          <div className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 w-full max-w-sm">
+            <p className="text-xs text-white/60 uppercase tracking-widest font-semibold mb-1">
               Nächstes Rätsel in
             </p>
-            <p className="font-heading text-5xl text-accent">{countdown}</p>
-            <p className="text-muted-foreground text-sm mt-2">
+            <p className="font-heading text-4xl text-white">{countdown}</p>
+            <p className="text-white/60 text-xs mt-1">
               Tag {day + 1} erscheint um 13:30 MEZ
             </p>
           </div>
         )}
-
-        <p className="text-muted-foreground text-sm max-w-xs text-pretty">
-          Bis zum nächsten Rätsel könnt ihr entspannen und das Lagerfeuer genießen.
-        </p>
       </div>
     </main>
   )
