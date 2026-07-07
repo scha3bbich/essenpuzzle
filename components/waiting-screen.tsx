@@ -28,7 +28,7 @@ export default function WaitingScreen({ isAfterCamp, campStart }: WaitingScreenP
       setCountdown(`${days}T ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
     }
     tick()
-      const id = setInterval(tick, 1000)
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [isAfterCamp, start])
 
@@ -53,10 +53,10 @@ export default function WaitingScreen({ isAfterCamp, campStart }: WaitingScreenP
       </div>
 
       <h1 className="font-heading text-4xl md:text-5xl text-primary mb-3 text-balance">
-        Zeltlager Mittagessen
+        Zeltlager Essen
       </h1>
       <p className="text-muted-foreground text-lg mb-8 max-w-sm text-pretty">
-        Das erste Rätsel erscheint am{' '}
+        Eure erste Aufgabe erscheint am{' '}
         <span className="font-bold text-foreground">{formatDateDE(start)}</span>{' '}
         um 13:30 Uhr MEZ.
       </p>
@@ -69,7 +69,7 @@ export default function WaitingScreen({ isAfterCamp, campStart }: WaitingScreenP
       </div>
 
       <p className="mt-8 text-sm text-muted-foreground">
-        Jeden Tag um 13:30 MEZ gibt es ein neues Rätsel.
+        Jeden Tag nach dem Essen gibt es ein neues Rätsel.
       </p>
     </main>
   )
