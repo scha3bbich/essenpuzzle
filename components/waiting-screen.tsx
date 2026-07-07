@@ -58,7 +58,7 @@ export default function WaitingScreen({ isAfterCamp, campStart }: WaitingScreenP
       <p className="text-muted-foreground text-lg mb-8 max-w-sm text-pretty">
         Eure erste Aufgabe erscheint am{' '}
         <span className="font-bold text-foreground">{formatDateDE(start)}</span>{' '}
-        um 13:30 Uhr MEZ.
+        um 18:30 Uhr MEZ.
       </p>
 
       <div className="bg-card border border-border rounded-2xl px-8 py-6 shadow-sm">
