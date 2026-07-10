@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { GeoGuessrRound } from '@/lib/config'
 
 // Leaflet must be loaded client-side only
@@ -157,10 +158,11 @@ export default function Day4({ onSolved, content }: Props) {
           </div>
         </div>
 
-        {/* Lightbox */}
-        {lightbox && (
+        {/* Lightbox — rendered into document.body via portal so it sits above Leaflet's z-index */}
+        {lightbox && createPortal(
           <div
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/90 flex items-center justify-center p-4"
+            style={{ zIndex: 9999 }}
             onClick={() => setLightbox(false)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -179,7 +181,8 @@ export default function Day4({ onSolved, content }: Props) {
                 <path d="M18 6 6 18M6 6l12 12"/>
               </svg>
             </button>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Map */}
