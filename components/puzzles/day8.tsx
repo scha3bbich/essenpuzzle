@@ -65,13 +65,13 @@ export default function Day8({ onSolved, content }: Props) {
             <div
               key={step}
               className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 transition-all ${isCorrect ? 'border-primary bg-primary/10' :
-                  isWrong ? 'border-destructive bg-destructive/10' :
-                    'border-border bg-background'
+                isWrong ? 'border-destructive bg-destructive/10' :
+                  'border-border bg-background'
                 }`}
             >
               <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isCorrect ? 'bg-primary text-primary-foreground' :
-                  isWrong ? 'bg-destructive text-primary-foreground' :
-                    'bg-secondary text-muted-foreground'
+                isWrong ? 'bg-destructive text-primary-foreground' :
+                  'bg-secondary text-muted-foreground'
                 }`}>
                 {idx + 1}
               </span>
