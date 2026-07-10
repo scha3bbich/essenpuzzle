@@ -15,32 +15,35 @@ interface Props { onSolved: () => void; content?: { questions?: QuizQuestion[] }
 
 export default function Day1({ onSolved, content }: Props) {
   const QUESTIONS = content?.questions?.length ? content.questions : DEFAULT_QUESTIONS
+
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [wrong, setWrong] = useState(false)
-  const [score, setScore] = useState(0)
-  const [done, setDone] = useState(false)
+  const [failed, setFailed] = useState(false)   // wrong answer was chosen
+  const [done, setDone] = useState(false)        // all answered correctly in one run
 
   const q = QUESTIONS[current]
 
   const handleOption = (idx: number) => {
     if (selected !== null) return
     setSelected(idx)
-    if (idx === q.answer) {
-      setScore(s => s + 1)
-      setWrong(false)
-    } else {
-      setWrong(true)
+    if (idx !== q.answer) {
+      setFailed(true)
     }
   }
 
   const handleNext = () => {
+    if (failed) {
+      // Wrong answer — show message briefly, then restart from the top
+      setCurrent(0)
+      setSelected(null)
+      setFailed(false)
+      return
+    }
     if (current + 1 >= QUESTIONS.length) {
       setDone(true)
     } else {
       setCurrent(c => c + 1)
       setSelected(null)
-      setWrong(false)
     }
   }
 
@@ -48,15 +51,12 @@ export default function Day1({ onSolved, content }: Props) {
     <PuzzleShell
       day={1}
       title="Zeltlager-Quiz"
-      description="Beantworte alle 4 Fragen rund ums Zeltlager-Mittagessen!"
+      description="Beantworte alle Fragen richtig — ein Fehler und du startest von vorne!"
     >
       {done ? (
         <div className="flex flex-col items-center gap-4 text-center py-4">
-          <div className="text-6xl animate-bounce-in">🏆</div>
-          <p className="font-heading text-3xl text-primary">{score} / {QUESTIONS.length} richtig!</p>
-          <p className="text-muted-foreground">
-            {score === QUESTIONS.length ? 'Perfekt! Alles richtig!' : 'Super gemacht!'}
-          </p>
+          <p className="font-heading text-3xl text-primary">Alles richtig!</p>
+          <p className="text-muted-foreground">Du hast alle {QUESTIONS.length} Fragen korrekt beantwortet.</p>
           <button
             onClick={onSolved}
             className="mt-2 bg-primary text-primary-foreground font-bold px-6 py-3 rounded-2xl hover:opacity-90 active:scale-95 transition-all"
@@ -70,9 +70,6 @@ export default function Day1({ onSolved, content }: Props) {
             <span className="text-sm text-muted-foreground font-semibold">
               Frage {current + 1} / {QUESTIONS.length}
             </span>
-            <span className="text-sm bg-primary/10 text-primary rounded-full px-3 py-0.5 font-bold">
-              {score} Punkte
-            </span>
           </div>
 
           <p className="font-bold text-lg text-foreground text-pretty">{q.q}</p>
@@ -82,7 +79,7 @@ export default function Day1({ onSolved, content }: Props) {
               let cls = 'border-border bg-background text-foreground hover:bg-muted'
               if (selected !== null) {
                 if (idx === q.answer) cls = 'border-primary bg-primary/10 text-primary'
-                else if (idx === selected && wrong) cls = 'border-destructive bg-destructive/10 text-destructive'
+                else if (idx === selected) cls = 'border-destructive bg-destructive/10 text-destructive'
                 else cls = 'border-border bg-background text-muted-foreground opacity-60'
               }
               return (
@@ -98,12 +95,23 @@ export default function Day1({ onSolved, content }: Props) {
           </div>
 
           {selected !== null && (
-            <button
-              onClick={handleNext}
-              className="mt-2 self-end bg-primary text-primary-foreground font-bold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-95 transition-all"
-            >
-              {current + 1 < QUESTIONS.length ? 'Nächste Frage' : 'Ergebnis ansehen'}
-            </button>
+            <div className="flex flex-col gap-2">
+              {failed && (
+                <p className="text-destructive text-sm font-semibold text-center">
+                  Falsch! Die richtige Antwort war &bdquo;{q.options[q.answer]}&ldquo;. Du startest von vorne.
+                </p>
+              )}
+              <button
+                onClick={handleNext}
+                className={`self-end font-bold px-5 py-2.5 rounded-xl active:scale-95 transition-all ${
+                  failed
+                    ? 'bg-destructive text-destructive-foreground hover:opacity-90'
+                    : 'bg-primary text-primary-foreground hover:opacity-90'
+                }`}
+              >
+                {failed ? 'Von vorne starten' : current + 1 < QUESTIONS.length ? 'Nächste Frage' : 'Abschliessen'}
+              </button>
+            </div>
           )}
         </div>
       )}
