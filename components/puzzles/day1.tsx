@@ -78,9 +78,14 @@ export default function Day1({ onSolved, content }: Props) {
             {q.options.map((opt, idx) => {
               let cls = 'border-border bg-background text-foreground hover:bg-muted'
               if (selected !== null) {
-                if (idx === q.answer) cls = 'border-primary bg-primary/10 text-primary'
-                else if (idx === selected) cls = 'border-destructive bg-destructive/10 text-destructive'
-                else cls = 'border-border bg-background text-muted-foreground opacity-60'
+                if (failed) {
+                  // Don't reveal the correct answer — only mark the wrong pick
+                  if (idx === selected) cls = 'border-destructive bg-destructive/10 text-destructive'
+                  else cls = 'border-border bg-background text-muted-foreground opacity-60'
+                } else {
+                  if (idx === q.answer) cls = 'border-primary bg-primary/10 text-primary'
+                  else cls = 'border-border bg-background text-muted-foreground opacity-60'
+                }
               }
               return (
                 <button
@@ -98,7 +103,7 @@ export default function Day1({ onSolved, content }: Props) {
             <div className="flex flex-col gap-2">
               {failed && (
                 <p className="text-destructive text-sm font-semibold text-center">
-                  Falsch! Die richtige Antwort war &bdquo;{q.options[q.answer]}&ldquo;. Du startest von vorne.
+                  Falsch! Du musst von vorne anfangen.
                 </p>
               )}
               <button
