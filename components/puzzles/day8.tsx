@@ -55,7 +55,7 @@ export default function Day8({ onSolved, content }: Props) {
     <PuzzleShell
       day={8}
       title="Die richtige Reihenfolge"
-      description="Bringe die Kochschritte für Nudeln in die richtige Reihenfolge! Nutze die Pfeile zum Verschieben."
+      description="Bringe die Schnäpsein die richtige Reihenfolge! Ganz nach oben den mit dem höchsten Alkoholgehalt, dann absteigend bis zu dem mit dem geringsten Alkoholgehalt. Nutze die Pfeile zum Verschieben."
     >
       <div className="flex flex-col gap-3">
         {items.map((step, idx) => {
@@ -64,17 +64,15 @@ export default function Day8({ onSolved, content }: Props) {
           return (
             <div
               key={step}
-              className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 transition-all ${
-                isCorrect ? 'border-primary bg-primary/10' :
-                isWrong ? 'border-destructive bg-destructive/10' :
-                'border-border bg-background'
-              }`}
+              className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 transition-all ${isCorrect ? 'border-primary bg-primary/10' :
+                  isWrong ? 'border-destructive bg-destructive/10' :
+                    'border-border bg-background'
+                }`}
             >
-              <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                isCorrect ? 'bg-primary text-primary-foreground' :
-                isWrong ? 'bg-destructive text-primary-foreground' :
-                'bg-secondary text-muted-foreground'
-              }`}>
+              <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isCorrect ? 'bg-primary text-primary-foreground' :
+                  isWrong ? 'bg-destructive text-primary-foreground' :
+                    'bg-secondary text-muted-foreground'
+                }`}>
                 {idx + 1}
               </span>
               <span className="flex-1 text-sm font-semibold text-foreground text-pretty">{step}</span>
