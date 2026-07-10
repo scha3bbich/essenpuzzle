@@ -38,6 +38,7 @@ export default function Day4({ onSolved, content }: Props) {
   const [guess, setGuess] = useState<{ lat: number; lng: number } | null>(null)
   const [result, setResult] = useState<GuessResult | null>(null)
   const [allSolved, setAllSolved] = useState(false)
+  const [lightbox, setLightbox] = useState(false)
 
   const round = rounds[roundIdx]
 
@@ -70,6 +71,7 @@ export default function Day4({ onSolved, content }: Props) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setLightbox(false); return }
       if (e.key !== 'Enter') return
       if (result?.correct) handleNext()
       else if (guess && !result) handleSubmit()
@@ -139,12 +141,46 @@ export default function Day4({ onSolved, content }: Props) {
             alt="Wo wurde dieses Foto aufgenommen?"
             className="w-full h-full object-contain"
           />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-2 pointer-events-none">
-            <p className="text-white text-xs font-semibold text-center">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-2 flex items-end justify-between">
+            <p className="text-white text-xs font-semibold">
               Wo wurde dieses Foto aufgenommen?
             </p>
+            <button
+              onClick={() => setLightbox(true)}
+              aria-label="Bild vergrößern"
+              className="shrink-0 ml-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Lightbox */}
+        {lightbox && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setLightbox(false)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={round.imageUrl}
+              alt="Foto in Originalgröße"
+              className="max-w-full max-h-full object-contain rounded-lg select-none"
+              onClick={e => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setLightbox(false)}
+              aria-label="Schließen"
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Map */}
         <div className="flex-1 min-h-0 relative">

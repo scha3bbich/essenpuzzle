@@ -78,7 +78,7 @@ export default function Day7({ onSolved, content }: Props) {
     <PuzzleShell
       day={7}
       title="Galgenmännchen"
-      description="Rate das Zeltlager-Wort, bevor der Köche am Galgen hängt!"
+      description="Rate das Zeltlager-Wort, bevor der Koch am Galgen hängt!"
     >
       {solved ? (
         <div className="flex flex-col items-center gap-4 text-center py-4">
@@ -133,11 +133,10 @@ export default function Day7({ onSolved, content }: Props) {
                     key={l}
                     onClick={() => handleGuess(l)}
                     disabled={isGuessed}
-                    className={`w-8 h-8 text-xs font-bold rounded-lg border-2 transition-all ${
-                      isCorrect ? 'bg-primary/20 border-primary text-primary' :
-                      isWrong ? 'bg-muted border-muted text-muted-foreground opacity-40' :
-                      'bg-secondary border-border text-foreground hover:bg-muted active:scale-95'
-                    }`}
+                    className={`w-8 h-8 text-xs font-bold rounded-lg border-2 transition-all ${isCorrect ? 'bg-primary/20 border-primary text-primary' :
+                        isWrong ? 'bg-muted border-muted text-muted-foreground opacity-40' :
+                          'bg-secondary border-border text-foreground hover:bg-muted active:scale-95'
+                      }`}
                   >
                     {l}
                   </button>
