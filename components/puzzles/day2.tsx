@@ -147,8 +147,9 @@ export default function Day2({ onSolved, content }: Props) {
         <span className="text-sm text-muted-foreground font-semibold">
           Paare: {matched.size / 2}&thinsp;/&thinsp;{pairs.length}
         </span>
-        <span className="font-heading text-lg text-foreground text-balance text-center leading-none">
-          Gruppenleiter Memory
+        <span className="text-center leading-tight">
+          <span className="font-heading text-lg text-foreground block leading-none">Gruppenleiter Memory</span>
+          <span className="text-xs text-muted-foreground">Welcher Gruppenleiter wurde mit welchem Essen assoziiert?</span>
         </span>
         <span className="text-sm bg-primary/10 text-primary rounded-full px-3 py-0.5 font-bold">
           Züge: {moves}
