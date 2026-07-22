@@ -10,6 +10,7 @@ import type {
   HitsterPair,
   MemoryPair,
   GeoGuessrRound,
+  CookWord,
   FinalStage,
 } from '@/lib/config'
 
@@ -706,48 +707,40 @@ function HitsterEditor({
   )
 }
 
-// ─── Day 11: Code ─────────────────────────────────────────────────────────────
+// ─── Day 11: Cooks ────────────────────────────────────────────────────────────
 
-function CodeEditor({
-  encoded,
-  answer,
-  clues,
+function CooksEditor({
+  cooks,
   onChange,
 }: {
-  encoded: number[]
-  answer: string
-  clues: Array<{ clue: string }>
-  onChange: (patch: { encoded?: number[]; answer?: string; clues?: Array<{ clue: string }> }) => void
+  cooks: CookWord[]
+  onChange: (c: CookWord[]) => void
 }) {
+  const update = (i: number, patch: Partial<CookWord>) =>
+    onChange(cooks.map((c, idx) => (idx === i ? { ...c, ...patch } : c)))
+
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <SectionLabel>Zahlencode (kommagetrennt, z.B. 19,21,16)</SectionLabel>
-        <TextInput
-          value={encoded.join(', ')}
-          onChange={v => {
-            const nums = v.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-            onChange({ encoded: nums })
-          }}
-          placeholder="19, 21, 16, 16, 5"
-        />
-      </div>
-      <div>
-        <SectionLabel>Losungswort (Grossbuchstaben)</SectionLabel>
-        <TextInput value={answer} onChange={v => onChange({ answer: v.toUpperCase() })} placeholder="SUPPE" />
-      </div>
-      <div>
-        <SectionLabel>Hinweise</SectionLabel>
-        {clues.map((c, i) => (
-          <div key={i} className="flex items-center gap-2 mb-2">
-            <TextInput value={c.clue} onChange={v => onChange({ clues: clues.map((x, idx) => (idx === i ? { clue: v } : x)) })} placeholder={`Hinweis ${i + 1}`} />
-            {clues.length > 1 && (
-              <RemoveButton onClick={() => onChange({ clues: clues.filter((_, idx) => idx !== i) })} />
-            )}
+      <SectionLabel>Köche & Lösungswörter ({cooks.length})</SectionLabel>
+      {cooks.map((c, i) => (
+        <ItemCard key={i}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-bold">Koch {i + 1}</span>
+            <RemoveButton onClick={() => onChange(cooks.filter((_, idx) => idx !== i))} />
           </div>
-        ))}
-        <AddButton onClick={() => onChange({ clues: [...clues, { clue: '' }] })} label="Hinweis hinzufugen" />
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-semibold">Name des Kochs</p>
+              <TextInput value={c.name} onChange={v => update(i, { name: v })} placeholder="z.B. Koch Klaus" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground font-semibold">Lösungswort</p>
+              <TextInput value={c.word} onChange={v => update(i, { word: v })} placeholder="z.B. PFANNE" />
+            </div>
+          </div>
+        </ItemCard>
+      ))}
+      <AddButton onClick={() => onChange([...cooks, { name: '', word: '' }])} label="Koch hinzufugen" />
     </div>
   )
 }
@@ -897,11 +890,9 @@ export default function PuzzleContentEditor({ day, content, onChange }: PuzzleEd
         />
       )}
       {day === 11 && (
-        <CodeEditor
-          encoded={content.codeEncoded ?? []}
-          answer={content.codeAnswer ?? ''}
-          clues={content.codeClues ?? []}
-          onChange={patch => onChange({ ...content, ...patch })}
+        <CooksEditor
+          cooks={content.cookWords ?? []}
+          onChange={c => onChange({ ...content, cookWords: c })}
         />
       )}
       {day === 12 && (

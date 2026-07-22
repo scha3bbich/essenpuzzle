@@ -41,7 +41,7 @@ export default function DayPuzzle({ day, onSolved, config }: Props) {
     case 8:  return <Day8  {...props} content={{ steps: pc?.sortingSteps }} />
     case 9:  return <Day9  {...props} content={{ riddles: pc?.textRiddles }} />
     case 10: return <Day10 {...props} content={{ hitsterPairs: pc?.hitsterPairs }} />
-    case 11: return <Day11 {...props} content={{ encoded: pc?.codeEncoded, answer: pc?.codeAnswer, clues: pc?.codeClues }} />
+    case 11: return <Day11 {...props} content={{ cooks: pc?.cookWords ?? [] }} />
     case 12: return <Day12 {...props} content={{ stages: pc?.finalStages }} />
     default:
       return (

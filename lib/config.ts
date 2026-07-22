@@ -65,6 +65,14 @@ export interface HitsterPair {
   label: string
 }
 
+/** Day 11 – Cooks: each cook reveals a solution word when persuaded */
+export interface CookWord {
+  /** Name of the cook */
+  name: string
+  /** The solution word the player must enter (case-insensitive) */
+  word: string
+}
+
 export interface FinalStage {
   type: 'quiz' | 'input'
   question: string
@@ -97,7 +105,9 @@ export interface DayPuzzleContent {
   // Day 10 – Hitster (audio-to-image matching)
   matchingPairs?: MatchingPair[] // legacy, kept for backwards compat
   hitsterPairs?: HitsterPair[]
-  // Day 11 – Code
+  // Day 11 – Cooks (enter solution words obtained from each cook)
+  cookWords?: CookWord[]
+  // Day 11 legacy – Code (kept for backwards compat)
   codeEncoded?: number[]
   codeAnswer?: string
   codeClues?: Array<{ clue: string }>
@@ -253,18 +263,12 @@ export const DEFAULT_CONFIG: AdminConfig = {
         hitsterPairs: [],
       },
     },
-    // Day 11 – Code
+    // Day 11 – Cooks (cook names + solution words added via admin)
     {
       unlockTimeMEZ: '13:30',
       successImageUrl: '/camp-success.png',
       puzzleContent: {
-        codeEncoded: [19, 21, 16, 16, 5],
-        codeAnswer: 'SUPPE',
-        codeClues: [
-          { clue: 'Erstes Buchstabe: Im Alphabet der 19. Buchstabe' },
-          { clue: '4. Buchstabe: Genauso wie der 3. Buchstabe' },
-          { clue: 'Letzter Buchstabe: Der 5. Buchstabe im Alphabet' },
-        ],
+        cookWords: [],
       },
     },
     // Day 12 – Final
