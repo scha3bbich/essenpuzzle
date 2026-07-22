@@ -42,7 +42,7 @@ export default function DayPuzzle({ day, onSolved, config }: Props) {
     case 9:  return <Day9  {...props} content={{ riddles: pc?.textRiddles }} />
     case 10: return <Day10 {...props} content={{ hitsterPairs: pc?.hitsterPairs }} />
     case 11: return <Day11 {...props} content={{ cooks: pc?.cookWords ?? [] }} />
-    case 12: return <Day12 {...props} content={{ stages: pc?.finalStages }} />
+    case 12: return <Day12 {...props} />
     default:
       return (
         <main className="min-h-screen flex items-center justify-center text-muted-foreground">

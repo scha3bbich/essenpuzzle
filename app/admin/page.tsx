@@ -17,7 +17,7 @@ const DAY_LABELS = [
   'Tag 9 – Ratsel',
   'Tag 10 – Hitster',
   'Tag 11 – Köche',
-  'Tag 12 – Finale',
+  'Tag 12 – Fotos',
 ]
 
 export default function AdminPage() {

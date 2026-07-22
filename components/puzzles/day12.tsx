@@ -2,155 +2,191 @@
 
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
+import { compressImage } from '@/lib/compress-image'
 
-import type { FinalStage } from '@/lib/config'
+interface Props { onSolved: () => void }
 
-const DEFAULT_STAGES: FinalStage[] = [
-  { type: 'quiz', question: 'Was ist das Lieblingsessen vieler Zeltlager-Kinder?', options: ['Rotkohl', 'Nudeln mit Tomatensauce', 'Fischsuppe', 'Blattsalat'], answer: '1' },
-  { type: 'input', question: 'Wie viele Tage hat dieses Zeltlager-Abenteuer gedauert?', answer: '12', hint: 'So viele Rätsel gab es' },
-  { type: 'quiz', question: 'Was ist das Wichtigste beim Kochen im Freien?', options: ['Scharfe Messer', 'Feuer und sicherer Umgang damit', 'Schnelle Zubereitung', 'Teure Zutaten'], answer: '1' },
-  { type: 'input', question: 'Was serviert man traditionell am Ende eines Zeltlager-Mittagessens zum Nachtisch?', answer: 'OBST', hint: 'Wächst auf Bäumen oder Sträuchern — z.B. Apfel oder Banane' },
+type SlotKey = 'fun' | 'favorite' | 'wish'
+
+interface SlotDef {
+  key: SlotKey
+  title: string
+  description: string
+}
+
+const SLOTS: SlotDef[] = [
+  {
+    key: 'fun',
+    title: 'Foto 1',
+    description: 'Ein Foto, das zeigt wie viel Spaß euch der Kalender gemacht hat.',
+  },
+  {
+    key: 'favorite',
+    title: 'Foto 2',
+    description: 'Euer Lieblings-Zeltlager Bild.',
+  },
+  {
+    key: 'wish',
+    title: 'Foto 3',
+    description: 'Ein Essen, das ihr am liebsten mal im Zeltlager auf dem Essensplan haben wollt.',
+  },
 ]
 
-interface Props { onSolved: () => void; content?: { stages?: FinalStage[] } }
+export default function Day12({ onSolved }: Props) {
+  const [photos, setPhotos] = useState<Record<SlotKey, string>>({ fun: '', favorite: '', wish: '' })
+  const [uploading, setUploading] = useState<SlotKey | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-export default function Day12({ onSolved, content }: Props) {
-  const STAGES = content?.stages?.length ? content.stages : DEFAULT_STAGES
-  const [stage, setStage] = useState(0)
-  const [input, setInput] = useState('')
-  const [selected, setSelected] = useState<number | null>(null)
-  const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle')
-  const [done, setDone] = useState(false)
+  const setPhoto = (key: SlotKey, url: string) => setPhotos(p => ({ ...p, [key]: url }))
 
-  const current = STAGES[stage]
-  const correctIdx = current.type === 'quiz' ? parseInt(current.answer, 10) : -1
-
-  const advance = () => {
-    if (stage + 1 >= STAGES.length) {
-      setDone(true)
-    } else {
-      setStage(s => s + 1)
-      setInput('')
-      setSelected(null)
-      setStatus('idle')
+  const uploadFile = async (key: SlotKey, file: File) => {
+    setUploading(key)
+    setError('')
+    try {
+      // Shrink large photos in the browser so they fit under the upload limit.
+      const compressed = await compressImage(file)
+      const formData = new FormData()
+      formData.append('file', compressed)
+      formData.append('day', '12')
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
+      const data = (await res.json()) as { url?: string; error?: string }
+      if (data.url) setPhoto(key, data.url)
+      else setError(data.error ?? 'Upload fehlgeschlagen.')
+    } catch {
+      setError('Upload fehlgeschlagen. Bitte versuche es erneut.')
+    } finally {
+      setUploading(null)
     }
   }
 
-  const checkInput = () => {
-    if (current.type !== 'input') return
-    if (input.trim().toUpperCase() === current.answer.toUpperCase()) {
-      setStatus('correct')
-      setTimeout(advance, 800)
-    } else {
-      setStatus('wrong')
-      setTimeout(() => setStatus('idle'), 800)
-    }
-  }
+  const allFilled = SLOTS.every(s => photos[s.key].trim() !== '')
 
-  const handleOption = (idx: number) => {
-    if (selected !== null) return
-    setSelected(idx)
-    if (idx === correctIdx) {
-      setStatus('correct')
-      setTimeout(advance, 900)
-    } else {
-      setStatus('wrong')
+  const handleSubmit = async () => {
+    if (!allFilled) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/day12-submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(photos),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        setError(data.error ?? 'Absenden fehlgeschlagen.')
+        setSubmitting(false)
+        return
+      }
+      onSolved()
+    } catch {
+      setError('Absenden fehlgeschlagen. Bitte versuche es erneut.')
+      setSubmitting(false)
     }
-  }
-
-  const retryOption = () => {
-    setSelected(null)
-    setStatus('idle')
   }
 
   return (
     <PuzzleShell
       day={12}
-      title="Das grosse Finale"
-      description="Der letzte Tag im Zeltlager! Bestehe die finale Herausforderung!"
+      title="Fotos für Johannes"
+      description="Zum Abschluss: Ladet drei Fotos hoch (oder fügt einen Foto-Link ein). Wenn alle drei da sind, könnt ihr sie abschicken."
     >
-      {done ? (
-        <div className="flex flex-col items-center gap-5 text-center py-4">
-          <div className="text-7xl animate-bounce-in">🏕️</div>
-          <div>
-            <p className="font-heading text-4xl text-primary mb-1">Geschafft!</p>
-            <p className="text-muted-foreground text-pretty max-w-xs mx-auto">
-              Du hast alle 12 Tage des Zeltlager-Abenteuers gemeistert. Was für ein Mittagessen!
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-center text-2xl">
-            {['🥕', '🍲', '🌽', '🥗', '🍞', '🧅'].map((e, i) => (
-              <span key={i} className="animate-float" style={{ animationDelay: `${i * 0.2}s` }}>{e}</span>
-            ))}
-          </div>
-          <button
-            onClick={onSolved}
-            className="mt-2 bg-primary text-primary-foreground font-bold px-8 py-3 rounded-2xl text-lg hover:opacity-90 active:scale-95 transition-all"
-          >
-            Zum Abschluss
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-5">
-          <div className="flex justify-between text-sm text-muted-foreground font-semibold">
-            <span>Aufgabe {stage + 1} / {STAGES.length}</span>
-            <span className="text-accent font-bold">Finaltag!</span>
-          </div>
-
-          <div className="bg-secondary rounded-2xl p-4 border border-border">
-            <p className="font-semibold text-foreground text-pretty">{current.question}</p>
-          </div>
-
-          {current.type === 'quiz' ? (
-            <div className="flex flex-col gap-2">
-              {(current.options ?? []).map((opt, idx) => {
-                let cls = 'border-border bg-background text-foreground hover:bg-muted'
-                if (selected !== null) {
-                  if (idx === correctIdx) cls = 'border-primary bg-primary/10 text-primary'
-                  else if (idx === selected) cls = 'border-destructive bg-destructive/10 text-destructive'
-                  else cls = 'border-border bg-background text-muted-foreground opacity-50'
-                }
-                return (
-                  <button key={idx} onClick={() => handleOption(idx)} className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${cls}`}>
-                    {opt}
-                  </button>
-                )
-              })}
-              {status === 'wrong' && (
-                <button onClick={retryOption} className="text-sm text-destructive underline text-center mt-1">
-                  Nochmal versuchen
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {current.hint && (
-                <p className="text-sm text-muted-foreground">Hinweis: <span className="font-semibold text-foreground">{current.hint}</span></p>
-              )}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && checkInput()}
-                  placeholder="Deine Antwort..."
-                  className={`flex-1 border-2 rounded-xl px-4 py-2.5 font-bold text-lg uppercase outline-none transition-all ${
-                    status === 'correct' ? 'border-primary bg-primary/10 text-primary' :
-                    status === 'wrong' ? 'border-destructive bg-destructive/10 text-destructive' :
-                    'border-border bg-background text-foreground'
-                  }`}
-                />
-                <button onClick={checkInput} className="bg-primary text-primary-foreground font-bold px-5 rounded-xl hover:opacity-90 active:scale-95 transition-all">
-                  OK
-                </button>
+      <div className="flex flex-col gap-5">
+        {SLOTS.map((slot, idx) => {
+          const url = photos[slot.key]
+          const isUploading = uploading === slot.key
+          return (
+            <div key={slot.key} className="bg-secondary rounded-2xl p-4 border border-border flex flex-col gap-3">
+              <div>
+                <p className="font-bold text-foreground">{slot.title}</p>
+                <p className="text-sm text-muted-foreground text-pretty">{slot.description}</p>
               </div>
-              {status === 'wrong' && (
-                <p className="text-sm text-destructive text-center font-semibold animate-wiggle">Leider falsch!</p>
+
+              {url ? (
+                <div className="flex flex-col gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Vorschau ${slot.title}`}
+                    className="w-full max-h-56 object-contain rounded-xl border border-border bg-background"
+                  />
+                  <div className="flex gap-2">
+                    <label className="flex-1 text-center text-sm font-bold text-primary border border-primary/40 rounded-xl px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors">
+                      Ändern
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) uploadFile(slot.key, file)
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => setPhoto(slot.key, '')}
+                      className="flex-1 text-sm font-bold text-destructive border border-destructive/40 rounded-xl px-3 py-2 hover:bg-destructive/10 transition-colors"
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className={`text-center text-sm font-bold rounded-xl px-3 py-3 cursor-pointer transition-colors ${
+                    isUploading
+                      ? 'bg-muted text-muted-foreground cursor-wait'
+                      : 'bg-primary text-primary-foreground hover:opacity-90'
+                  }`}>
+                    {isUploading ? 'Wird hochgeladen…' : 'Foto hochladen'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploading}
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) uploadFile(slot.key, file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-xs text-muted-foreground">oder Foto-Link einfügen</span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                  <input
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://…"
+                    value={url}
+                    onChange={e => setPhoto(slot.key, e.target.value)}
+                    className="border border-border rounded-xl px-3 py-2 text-sm bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
               )}
+
+              <p className="text-xs text-muted-foreground font-semibold">
+                {idx + 1} / {SLOTS.length} {url ? '· bereit' : '· fehlt noch'}
+              </p>
             </div>
-          )}
-        </div>
-      )}
+          )
+        })}
+
+        {error && (
+          <p className="text-sm text-destructive font-semibold text-center">{error}</p>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={!allFilled || submitting}
+          className="bg-primary text-primary-foreground font-bold px-6 py-3.5 rounded-2xl text-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {submitting ? 'Wird abgeschickt…' : allFilled ? 'Abschicken' : `Noch ${SLOTS.filter(s => !photos[s.key].trim()).length} Foto(s) fehlen`}
+        </button>
+      </div>
     </PuzzleShell>
   )
 }

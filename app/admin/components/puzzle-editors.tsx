@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import type {
   DayPuzzleContent,
   QuizQuestion,
@@ -11,8 +12,8 @@ import type {
   MemoryPair,
   GeoGuessrRound,
   CookWord,
-  FinalStage,
 } from '@/lib/config'
+import { compressImage } from '@/lib/compress-image'
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -201,8 +202,9 @@ function MemoryEditor({
     onChange(pairs.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
 
   const uploadImage = async (i: number, file: File) => {
+    const compressed = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', compressed)
     formData.append('day', '2')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
@@ -290,8 +292,9 @@ function GeoGuessrEditor({
     onChange(rounds.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
   const uploadImage = async (i: number, file: File) => {
+    const compressed = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', compressed)
     formData.append('day', '4')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
@@ -603,8 +606,10 @@ function HitsterEditor({
     file: File,
     type: 'audio' | 'image'
   ) => {
+    // Images get compressed; audio files are returned unchanged by the helper.
+    const prepared = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', prepared)
     formData.append('day', '10')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
@@ -745,64 +750,109 @@ function CooksEditor({
   )
 }
 
-// ─── Day 12: Final Stages ─────────────────────────────────────────────────────
+// ─── Day 12: Foto-Einsendungen ────────────────────────────────────────────────
 
-function FinalEditor({ stages, onChange }: { stages: FinalStage[]; onChange: (s: FinalStage[]) => void }) {
-  const update = (i: number, patch: Partial<FinalStage>) =>
-    onChange(stages.map((s, idx) => (idx === i ? { ...s, ...patch } : s)))
+interface Day12Submission {
+  id: string
+  fun: string
+  favorite: string
+  wish: string
+  submittedAt: string
+}
+
+const DAY12_SLOTS: Array<{ key: 'fun' | 'favorite' | 'wish'; label: string }> = [
+  { key: 'fun', label: 'Spaß am Kalender' },
+  { key: 'favorite', label: 'Lieblings-Zeltlager Bild' },
+  { key: 'wish', label: 'Wunsch-Essen' },
+]
+
+function Day12SubmissionsViewer() {
+  const [submissions, setSubmissions] = useState<Day12Submission[] | null>(null)
+  const [error, setError] = useState('')
+
+  const load = () => {
+    setError('')
+    fetch('/api/day12-submissions', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: Day12Submission[]) => setSubmissions(data))
+      .catch(() => setError('Einsendungen konnten nicht geladen werden.'))
+  }
+
+  useEffect(load, [])
 
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Aufgaben</SectionLabel>
-      {stages.map((s, i) => (
-        <ItemCard key={i}>
-          <div className="flex items-center gap-2 justify-between">
-            <span className="text-xs text-muted-foreground font-bold">Aufgabe {i + 1}</span>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
-                <input type="radio" name={`stage-type-${i}`} checked={s.type === 'quiz'} onChange={() => update(i, { type: 'quiz', options: s.options ?? ['', '', '', ''], answer: '0' })} className="accent-primary" />
-                Quiz
-              </label>
-              <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
-                <input type="radio" name={`stage-type-${i}`} checked={s.type === 'input'} onChange={() => update(i, { type: 'input', answer: '' })} className="accent-primary" />
-                Eingabe
-              </label>
-              <RemoveButton onClick={() => onChange(stages.filter((_, idx) => idx !== i))} />
-            </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Foto-Einsendungen ({submissions?.length ?? 0})</SectionLabel>
+        <button
+          onClick={load}
+          className="text-xs font-bold text-primary border border-primary/40 rounded-lg px-3 py-1.5 hover:bg-primary/10 transition-colors"
+        >
+          Aktualisieren
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-destructive font-semibold">{error}</p>}
+
+      {submissions === null && !error && (
+        <p className="text-sm text-muted-foreground">Wird geladen…</p>
+      )}
+
+      {submissions?.length === 0 && (
+        <p className="text-sm text-muted-foreground">Noch keine Einsendungen vorhanden.</p>
+      )}
+
+      {submissions?.map((sub, i) => (
+        <ItemCard key={sub.id}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-bold">Einsendung {submissions.length - i}</span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(sub.submittedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}
+            </span>
           </div>
-          <TextArea value={s.question} onChange={v => update(i, { question: v })} placeholder="Frage..." rows={2} />
-          {s.type === 'quiz' ? (
-            <div className="flex flex-col gap-1.5 pl-2">
-              {(s.options ?? []).map((opt, oi) => (
-                <div key={oi} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={`final-answer-${i}`}
-                    checked={s.answer === String(oi)}
-                    onChange={() => update(i, { answer: String(oi) })}
-                    className="accent-primary shrink-0"
-                    title="Richtige Antwort"
-                  />
-                  <TextInput
-                    value={opt}
-                    onChange={v => update(i, { options: (s.options ?? []).map((o, idx) => (idx === oi ? v : o)) })}
-                    placeholder={`Option ${oi + 1}`}
-                  />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {DAY12_SLOTS.map(slot => {
+              const url = sub[slot.key]
+              return (
+                <div key={slot.key} className="flex flex-col gap-1.5">
+                  <p className="text-xs text-muted-foreground font-semibold">{slot.label}</p>
+                  {url ? (
+                    <>
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={slot.label}
+                          className="w-full aspect-square object-cover rounded-xl border border-border hover:opacity-90 transition-opacity"
+                        />
+                      </a>
+                      <div className="flex gap-2">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-center text-xs font-bold text-primary border border-primary/40 rounded-lg px-2 py-1.5 hover:bg-primary/10 transition-colors"
+                        >
+                          Ansehen
+                        </a>
+                        <a
+                          href={url}
+                          download
+                          className="flex-1 text-center text-xs font-bold text-foreground border border-border rounded-lg px-2 py-1.5 hover:bg-muted transition-colors"
+                        >
+                          Download
+                        </a>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">kein Foto</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <TextInput value={s.answer} onChange={v => update(i, { answer: v.toUpperCase() })} placeholder="Losung (GROSSBUCHSTABEN)" />
-              <TextInput value={s.hint ?? ''} onChange={v => update(i, { hint: v })} placeholder="Hinweis (optional)" />
-            </div>
-          )}
+              )
+            })}
+          </div>
         </ItemCard>
       ))}
-      <AddButton
-        onClick={() => onChange([...stages, { type: 'quiz', question: '', options: ['', '', '', ''], answer: '0' }])}
-        label="Aufgabe hinzufugen"
-      />
     </div>
   )
 }
@@ -820,7 +870,7 @@ export default function PuzzleContentEditor({ day, content, onChange }: PuzzleEd
     1: 'Quiz', 2: 'Memory', 3: 'Anagramm', 4: 'Wortsuche (Gitter fix)',
     5: 'Rechenaufgaben', 6: 'Wahr / Falsch', 7: 'Galgenmanning',
     8: 'Reihenfolge sortieren', 9: 'Ratsel', 10: 'Gruppenleiter Hitster',
-    11: 'Geheimcode', 12: 'Grosses Finale',
+    11: 'Köche', 12: 'Fotos für Johannes',
   }
 
   return (
@@ -895,12 +945,7 @@ export default function PuzzleContentEditor({ day, content, onChange }: PuzzleEd
           onChange={c => onChange({ ...content, cookWords: c })}
         />
       )}
-      {day === 12 && (
-        <FinalEditor
-          stages={content.finalStages ?? []}
-          onChange={s => onChange({ ...content, finalStages: s })}
-        />
-      )}
+      {day === 12 && <Day12SubmissionsViewer />}
     </div>
   )
 }
