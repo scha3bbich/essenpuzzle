@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import PuzzleShell from '@/components/puzzle-shell'
+import { compressImage } from '@/lib/compress-image'
 
 interface Props { onSolved: () => void }
 
@@ -43,8 +44,10 @@ export default function Day12({ onSolved }: Props) {
     setUploading(key)
     setError('')
     try {
+      // Shrink large photos in the browser so they fit under the upload limit.
+      const compressed = await compressImage(file)
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', compressed)
       formData.append('day', '12')
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
       const data = (await res.json()) as { url?: string; error?: string }

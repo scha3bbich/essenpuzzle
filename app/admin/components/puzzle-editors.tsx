@@ -13,6 +13,7 @@ import type {
   GeoGuessrRound,
   CookWord,
 } from '@/lib/config'
+import { compressImage } from '@/lib/compress-image'
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -201,8 +202,9 @@ function MemoryEditor({
     onChange(pairs.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
 
   const uploadImage = async (i: number, file: File) => {
+    const compressed = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', compressed)
     formData.append('day', '2')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
@@ -290,8 +292,9 @@ function GeoGuessrEditor({
     onChange(rounds.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
   const uploadImage = async (i: number, file: File) => {
+    const compressed = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', compressed)
     formData.append('day', '4')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
@@ -603,8 +606,10 @@ function HitsterEditor({
     file: File,
     type: 'audio' | 'image'
   ) => {
+    // Images get compressed; audio files are returned unchanged by the helper.
+    const prepared = await compressImage(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', prepared)
     formData.append('day', '10')
     try {
       const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
